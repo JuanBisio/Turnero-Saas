@@ -1,0 +1,297 @@
+/**
+ * Create/Edit Professional Form
+ */
+
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useShop } from '@/components/providers/ShopProvider'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+
+const DAYS = [
+  { value: 1, label: 'Lunes' },
+  { value: 2, label: 'Martes' },
+  { value: 3, label: 'Miércoles' },
+  { value: 4, label: 'Jueves' },
+  { value: 5, label: 'Viernes' },
+  { value: 6, label: 'Sábado' },
+  { value: 0, label: 'Domingo' },
+]
+
+type Schedule = {
+  day_of_week: number
+  start_time: string
+  end_time: string
+}
+
+export default function ProfessionalFormPage({
+  params,
+}: {
+  params: Promise<{ shop_slug: string; id: string }>
+}) {
+  const [resolvedParams, setResolvedParams] = useState<{ shop_slug: string; id: string } | null>(null)
+  const { shopId } = useShop()
+  const [name, setName] = useState('')
+  const [bufferTime, setBufferTime] = useState(10)
+  const [isActive, setIsActive] = useState(true)
+  const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [loading, setLoading] = useState(false)
+  const supabase = createClient()
+  const router = useRouter()
+
+  useEffect(() => {
+    params.then(setResolvedParams)
+  }, [params])
+
+  const isEdit = resolvedParams?.id !== 'nuevo'
+
+  useEffect(() => {
+    if (isEdit && resolvedParams?.id && shopId) {
+      fetchProfessional()
+    }
+  }, [isEdit, resolvedParams?.id, shopId])
+
+  async function fetchProfessional() {
+    if (!resolvedParams?.id) return
+
+    const { data: prof } = await supabase
+      .from('professionals')
+      .select('*')
+      .eq('id', resolvedParams.id)
+      .single()
+
+    if (prof) {
+      setName(prof.name)
+      setBufferTime(prof.buffer_time_minutes)
+      setIsActive(prof.is_active)
+    }
+
+    const { data: scheds } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('professional_id', resolvedParams.id)
+
+    if (scheds) {
+      setSchedules(scheds)
+    }
+  }
+
+  function addSchedule(day: number) {
+    setSchedules([
+      ...schedules,
+      { day_of_week: day, start_time: '09:00:00', end_time: '18:00:00' },
+    ])
+  }
+
+  function removeSchedule(index: number) {
+    setSchedules(schedules.filter((_, i) => i !== index))
+  }
+
+  function updateSchedule(index: number, field: keyof Schedule, value: string | number) {
+    const updated = [...schedules]
+    updated[index] = { ...updated[index], [field]: value }
+    setSchedules(updated)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!shopId || !resolvedParams) return
+
+    setLoading(true)
+
+    try {
+      if (isEdit) {
+        // Update professional
+        await supabase
+          .from('professionals')
+          .update({
+            name,
+            buffer_time_minutes: bufferTime,
+            is_active: isActive,
+          })
+          .eq('id', resolvedParams.id)
+
+        // Delete old schedules
+        await supabase
+          .from('schedules')
+          .delete()
+          .eq('professional_id', resolvedParams.id)
+
+        // Insert new schedules
+        if (schedules.length > 0) {
+          await supabase.from('schedules').insert(
+            schedules.map((s) => ({
+              professional_id: resolvedParams.id,
+              day_of_week: s.day_of_week,
+              start_time: s.start_time,
+              end_time: s.end_time,
+            }))
+          )
+        }
+      } else {
+        // Create professional
+        const { data: newProf } = await supabase
+          .from('professionals')
+          .insert({
+            shop_id: shopId,
+            name,
+            buffer_time_minutes: bufferTime,
+            is_active: isActive,
+          })
+          .select()
+          .single()
+
+        // Insert schedules
+        if (newProf && schedules.length > 0) {
+          await supabase.from('schedules').insert(
+            schedules.map((s) => ({
+              professional_id: newProf.id,
+              day_of_week: s.day_of_week,
+              start_time: s.start_time,
+              end_time: s.end_time,
+            }))
+          )
+        }
+      }
+
+      router.push(`/dashboard/${resolvedParams.shop_slug}/profesionales`)
+    } catch (error) {
+      console.error('Error saving professional:', error)
+      alert('Error al guardar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!resolvedParams) {
+    return <div>Cargando...</div>
+  }
+
+  return (
+    <div className="max-w-2xl">
+      <h2 className="text-3xl font-bold mb-6">
+        {isEdit ? 'Editar' : 'Nuevo'} Profesional
+      </h2>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Name */}
+        <div>
+          <label className="block text-sm font-medium mb-2">Nombre *</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-lg border bg-background px-4 py-2"
+            required
+          />
+        </div>
+
+        {/* Buffer Time */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Tiempo de buffer (minutos) *
+          </label>
+          <input
+            type="number"
+            value={bufferTime}
+            onChange={(e) => setBufferTime(parseInt(e.target.value))}
+            className="w-full rounded-lg border bg-background px-4 py-2"
+            min="0"
+            required
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Tiempo adicional entre turnos para preparación
+          </p>
+        </div>
+
+        {/* Active */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="active"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="h-4 w-4"
+          />
+          <label htmlFor="active" className="text-sm font-medium">
+            Activo (disponible para reservas)
+          </label>
+        </div>
+
+        {/* Schedules */}
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Horarios</h3>
+          
+          <div className="space-y-3 mb-4">
+            {schedules.map((schedule, index) => {
+              const dayLabel = DAYS.find((d) => d.value === schedule.day_of_week)?.label
+              return (
+                <div key={index} className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{dayLabel}</p>
+                  </div>
+                  <input
+                    type="time"
+                    value={schedule.start_time.substring(0, 5)}
+                    onChange={(e) => updateSchedule(index, 'start_time', e.target.value + ':00')}
+                    className="rounded border px-2 py-1 text-sm"
+                  />
+                  <span>-</span>
+                  <input
+                    type="time"
+                    value={schedule.end_time.substring(0, 5)}
+                    onChange={(e) => updateSchedule(index, 'end_time', e.target.value + ':00')}
+                    className="rounded border px-2 py-1 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSchedule(index)}
+                    className="text-destructive hover:underline text-sm"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {DAYS.map((day) => {
+              const hasSchedule = schedules.some((s) => s.day_of_week === day.value)
+              return (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => addSchedule(day.value)}
+                  disabled={hasSchedule}
+                  className="rounded-lg border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
+                >
+                  + {day.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {loading ? 'Guardando...' : 'Guardar'}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="rounded-lg border px-4 py-2 hover:bg-accent"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
