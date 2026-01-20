@@ -64,17 +64,76 @@ export default async function DashboardHomePage({
   // Calculate KPIs
   const turnosHoy = todayApts?.length || 0
   const turnosAyer = yesterdayApts?.length || 0
-  const turnosSemana = weekApts?.length || 0
-
+  
+  // Revenue Calculation
   const revenueHoy = todayApts?.reduce((sum, apt: any) => 
     sum + (apt.service?.price || 0), 0) || 0
+    
+  // Fetch previous days for revenue comparison
+  const { data: yesterdayRevenueApts } = await supabase
+    .from('appointments')
+    .select('service:services(price)')
+    .eq('shop_id', shop.id)
+    .gte('start_time', `${yesterday}T00:00:00`)
+    .lt('start_time', `${yesterday}T23:59:59`)
+    
+  const revenueAyer = yesterdayRevenueApts?.reduce((sum, apt: any) => 
+    sum + (apt.service?.price || 0), 0) || 0
 
-  const confirmados = todayApts?.filter((a: any) => a.status === 'confirmado').length || 0
-  const tasaConfirmacion = turnosHoy > 0 ? Math.round((confirmados / turnosHoy) * 100) : 0
+  // Weekly Comparison
+  const lastWeekStart = format(subDays(new Date(), 14), 'yyyy-MM-dd')
+  const { data: lastWeekApts } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('shop_id', shop.id)
+    .gte('start_time', `${lastWeekStart}T00:00:00`)
+    .lt('start_time', `${weekStart}T00:00:00`)
 
+  const turnosSemana = weekApts?.length || 0
+  const turnosSemanaAnt = lastWeekApts?.length || 0
+
+  // Monthly Confirmation Rate Comparison
+  const currentMonthStart = format(startOfMonth(new Date()), 'yyyy-MM-dd')
+  const lastMonthStart = format(startOfMonth(subMonths(new Date(), 1)), 'yyyy-MM-dd')
+  
+  const { data: currentMonthApts } = await supabase
+    .from('appointments')
+    .select('status')
+    .eq('shop_id', shop.id)
+    .gte('start_time', `${currentMonthStart}T00:00:00`)
+
+  const { data: lastMonthApts } = await supabase
+    .from('appointments')
+    .select('status')
+    .eq('shop_id', shop.id)
+    .gte('start_time', `${lastMonthStart}T00:00:00`)
+    .lt('start_time', `${currentMonthStart}T00:00:00`)
+
+  // Calculate Rates
+  // Current Month Rate
+  const currentTotal = currentMonthApts?.length || 0
+  const currentConfirmed = currentMonthApts?.filter((a: any) => a.status === 'confirmado').length || 0
+  const tasaConfirmacion = currentTotal > 0 ? Math.round((currentConfirmed / currentTotal) * 100) : 0
+
+  // Last Month Rate
+  const lastTotal = lastMonthApts?.length || 0
+  const lastConfirmed = lastMonthApts?.filter((a: any) => a.status === 'confirmado').length || 0
+  const tasaConfirmacionAnt = lastTotal > 0 ? Math.round((lastConfirmed / lastTotal) * 100) : 0
+
+  // Calculate Percent Changes
   const changeTurnos = turnosAyer > 0 
     ? Math.round(((turnosHoy - turnosAyer) / turnosAyer) * 100)
     : 0
+
+  const changeRevenue = revenueAyer > 0
+    ? Math.round(((revenueHoy - revenueAyer) / revenueAyer) * 100)
+    : 0
+
+  const changeTurnosSemana = turnosSemanaAnt > 0
+    ? Math.round(((turnosSemana - turnosSemanaAnt) / turnosSemanaAnt) * 100)
+    : 0
+
+  const changeTasa = tasaConfirmacion - tasaConfirmacionAnt // Points difference for percentages
 
   // --- Dynamic Chart Data Calculation ---
   
@@ -86,7 +145,7 @@ export default async function DashboardHomePage({
     .eq('shop_id', shop.id)
     .gte('start_time', format(sixMonthsAgo, 'yyyy-MM-dd') + 'T00:00:00')
     .in('status', ['confirmado', 'completado']) // Revenue usually comes from valid appointments
-
+  
   // 2. Process Revenue Data
   const monthlyRevenue = periodApts?.reduce((acc, apt: any) => {
     // Group by Month Key (e.g., "ene", "feb")
@@ -95,7 +154,7 @@ export default async function DashboardHomePage({
     acc[monthKey] = (acc[monthKey] || 0) + price
     return acc
   }, {} as Record<string, number>)
-
+  
   const revenueChartData = eachMonthOfInterval({
     start: sixMonthsAgo,
     end: new Date()
@@ -109,28 +168,28 @@ export default async function DashboardHomePage({
        target: 50000 // Static target for reference
      }
   })
-
+  
   // 3. Process Top Services Data
   const serviceCounts = periodApts?.reduce((acc, apt: any) => {
     const name = apt.service?.name || 'Otros'
     acc[name] = (acc[name] || 0) + 1
     return acc
   }, {} as Record<string, number>)
-
+  
   const topServicesData = Object.entries(serviceCounts || {})
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 4)
     .map(([name, value], index) => ({
       name,
       value: value as number,
-      color: ['#3b82f6', '#facc15', '#22c55e', '#f97316'][index] || '#94a3b8'
+      color: ['#0ea5e9', '#f59e0b', '#10b981', '#f43f5e'][index] || '#94a3b8'
     }))
-
+  
   // Fallback if no data
   const finalTopServicesData = topServicesData.length > 0 ? topServicesData : [
     { name: 'Sin datos', value: 1, color: '#334155' }
   ]
-
+  
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div>
@@ -139,40 +198,40 @@ export default async function DashboardHomePage({
           Bienvenido a {shop.name}
         </p>
       </div>
-
+  
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Turnos Hoy"
           value={turnosHoy?.toString() || "0"}
-          change={12}
+          change={changeTurnos}
           trendLabel="vs. ayer"
           icon={Calendar}
           iconVariant="primary"
         />
-
+  
         <KPICard
           title="Revenue Hoy"
           value={`$${revenueHoy.toLocaleString()}`}
-          change={8}
+          change={changeRevenue}
           trendLabel="vs. ayer"
           icon={DollarSign}
           iconVariant="secondary"
         />
-
+  
         <KPICard
           title="Turnos Semana"
           value={turnosSemana?.toString() || "0"}
-          change={-2}
+          change={changeTurnosSemana}
           trendLabel="vs. semana ant."
           icon={CheckCircle}
           iconVariant="success"
         />
-
+  
         <KPICard
           title="Tasa Confirmación"
           value={`${tasaConfirmacion}%`}
-          change={5}
+          change={changeTasa}
           trendLabel="vs. mes ant."
           icon={Users}
           iconVariant="warning"
