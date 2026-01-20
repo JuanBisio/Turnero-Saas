@@ -66,20 +66,22 @@ export default async function DashboardHomePage({
   const turnosHoy = todayApts?.length || 0
   const turnosAyer = yesterdayApts?.length || 0
   
-  // Revenue Calculation
-  const revenueHoy = todayApts?.reduce((sum, apt: any) => 
-    sum + (apt.service?.price || 0), 0) || 0
+  // Revenue Calculation - ONLY count 'completado' appointments
+  const revenueHoy = todayApts
+    ?.filter((apt: any) => apt.status === 'completado')
+    .reduce((sum, apt: any) => sum + (apt.service?.price || 0), 0) || 0
     
   // Fetch previous days for revenue comparison
   const { data: yesterdayRevenueApts } = await supabase
     .from('appointments')
-    .select('service:services(price)')
+    .select('service:services(price), status')
     .eq('shop_id', shop.id)
     .gte('start_time', `${yesterday}T00:00:00`)
     .lt('start_time', `${yesterday}T23:59:59`)
     
-  const revenueAyer = yesterdayRevenueApts?.reduce((sum, apt: any) => 
-    sum + (apt.service?.price || 0), 0) || 0
+  const revenueAyer = yesterdayRevenueApts
+    ?.filter((apt: any) => apt.status === 'completado')
+    .reduce((sum, apt: any) => sum + (apt.service?.price || 0), 0) || 0
 
   // Weekly Comparison
   const lastWeekStart = format(subDays(new Date(), 14), 'yyyy-MM-dd')

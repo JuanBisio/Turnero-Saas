@@ -10,6 +10,13 @@ import { useShop } from '@/components/providers/ShopProvider'
 import { createClient } from '@/lib/supabase/client'
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type Professional = {
   id: string
@@ -54,6 +61,13 @@ export default function AgendaPage() {
       fetchDayData()
     }
   }, [selectedDate, selectedProfessional])
+
+  // Auto-complete past appointments
+  useEffect(() => {
+    if (shopId && selectedProfessional) {
+      autoCompletePastAppointments()
+    }
+  }, [shopId, selectedProfessional])
 
   // Realtime subscription
   useEffect(() => {
@@ -118,6 +132,42 @@ export default function AgendaPage() {
 
     if (apts) {
       setAppointments(apts)
+    }
+  }
+
+  // Auto-complete past appointments
+  async function autoCompletePastAppointments() {
+    const now = new Date().toISOString()
+
+    // Update only pendiente/confirmado appointments that have ended
+    const { error } = await supabase
+      .from('appointments')
+      .update({ status: 'completado' })
+      .eq('professional_id', selectedProfessional)
+      .lt('end_time', now)
+      .in('status', ['pendiente', 'confirmado'])
+
+    if (error) {
+      console.error('Error auto-completing appointments:', error)
+    } else {
+      // Refresh data after auto-complete
+      fetchDayData()
+    }
+  }
+
+  // Update appointment status manually
+  async function updateAppointmentStatus(appointmentId: string, newStatus: string) {
+    const { error } = await supabase
+      .from('appointments')
+      .update({ status: newStatus })
+      .eq('id', appointmentId)
+
+    if (error) {
+      console.error('Error updating status:', error)
+      alert('Error al actualizar el estado')
+    } else {
+      // Refresh data
+      fetchDayData()
     }
   }
 
@@ -235,32 +285,24 @@ export default function AgendaPage() {
                 appointments.map((apt) => {
                   const startTime = format(parseISO(apt.start_time), 'HH:mm')
                   const endTime = format(parseISO(apt.end_time), 'HH:mm')
+                  const isFinalized = ['completado', 'no_asistio'].includes(apt.status)
 
                   return (
                     <div
                       key={apt.id}
-                      className={`rounded-lg border p-3 ${
+                      className={`rounded-lg border p-3 transition-opacity ${
                         apt.status === 'cancelado'
                           ? 'bg-muted opacity-60'
+                          : isFinalized
+                          ? 'bg-card opacity-50 grayscale'
                           : 'bg-card'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold">
                               {startTime} - {endTime}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded ${
-                                apt.status === 'confirmado'
-                                  ? 'bg-green-100 text-green-800'
-                                  : apt.status === 'pendiente'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}
-                            >
-                              {apt.status}
                             </span>
                           </div>
                           <p className="font-medium">{apt.customer_name}</p>
@@ -270,6 +312,23 @@ export default function AgendaPage() {
                           <p className="text-xs text-muted-foreground">
                             {apt.customer_phone}
                           </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <Select
+                            value={apt.status}
+                            onValueChange={(newStatus) => updateAppointmentStatus(apt.id, newStatus)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pendiente">Pendiente</SelectItem>
+                              <SelectItem value="confirmado">Confirmado</SelectItem>
+                              <SelectItem value="completado">Completado</SelectItem>
+                              <SelectItem value="no_asistio">No Asistió</SelectItem>
+                              <SelectItem value="cancelado">Cancelado</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
                     </div>

@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import { useShop } from '@/components/providers/ShopProvider'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
 
 const DAYS = [
   { value: 1, label: 'Lunes' },
@@ -286,8 +287,34 @@ export default function ProfessionalFormPage({
             Configura uno o más rangos horarios por día (ej: turno mañana y tarde)
           </p>
           
-          <div className="space-y-4">
+          {/* Day Selector Buttons */}
+          <div className="flex gap-2 mb-6 flex-wrap">
             {DAYS.map((day) => {
+              const hasSchedules = schedules.some(s => s.day_of_week === day.value)
+              return (
+                <button
+                  key={day.value}
+                  type="button"
+                  onClick={() => {
+                    if (!hasSchedules) {
+                      addSchedule(day.value)
+                    }
+                  }}
+                  className={cn(
+                    "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    hasSchedules
+                      ? "bg-primary text-primary-foreground cursor-default"
+                      : "border border-dashed border-primary/50 text-primary hover:bg-primary/10"
+                  )}
+                >
+                  {day.label.substring(0, 2)}
+                </button>
+              )
+            })}
+          </div>
+          
+          <div className="space-y-4">
+            {DAYS.filter(day => schedules.some(s => s.day_of_week === day.value)).map((day) => {
               const daySchedules = schedules
                 .map((s, idx) => ({ ...s, originalIndex: idx }))
                 .filter((s) => s.day_of_week === day.value)
@@ -300,50 +327,46 @@ export default function ProfessionalFormPage({
                     </h4>
                   </div>
                   
-                  {daySchedules.length === 0 ? (
-                    <p className="text-sm text-muted-foreground mb-3">Sin horarios configurados</p>
-                  ) : (
-                    <div className="space-y-2 mb-3">
-                      {daySchedules.map((schedule) => (
-                        <div
-                          key={schedule.originalIndex}
-                          className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                  <div className="space-y-2 mb-3">
+                    {daySchedules.map((schedule) => (
+                      <div
+                        key={schedule.originalIndex}
+                        className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                      >
+                        <input
+                          type="time"
+                          value={schedule.start_time.substring(0, 5)}
+                          onChange={(e) =>
+                            updateSchedule(schedule.originalIndex, 'start_time', e.target.value + ':00')
+                          }
+                          className="rounded border px-2 py-1 text-sm bg-background"
+                        />
+                        <span className="text-muted-foreground">-</span>
+                        <input
+                          type="time"
+                          value={schedule.end_time.substring(0, 5)}
+                          onChange={(e) =>
+                            updateSchedule(schedule.originalIndex, 'end_time', e.target.value + ':00')
+                          }
+                          className="rounded border px-2 py-1 text-sm bg-background"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeSchedule(schedule.originalIndex)}
+                          className="ml-auto text-destructive hover:underline text-sm"
                         >
-                          <input
-                            type="time"
-                            value={schedule.start_time.substring(0, 5)}
-                            onChange={(e) =>
-                              updateSchedule(schedule.originalIndex, 'start_time', e.target.value + ':00')
-                            }
-                            className="rounded border px-2 py-1 text-sm bg-background"
-                          />
-                          <span className="text-muted-foreground">-</span>
-                          <input
-                            type="time"
-                            value={schedule.end_time.substring(0, 5)}
-                            onChange={(e) =>
-                              updateSchedule(schedule.originalIndex, 'end_time', e.target.value + ':00')
-                            }
-                            className="rounded border px-2 py-1 text-sm bg-background"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeSchedule(schedule.originalIndex)}
-                            className="ml-auto text-destructive hover:underline text-sm"
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          Eliminar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                   
                   <button
                     type="button"
                     onClick={() => addSchedule(day.value)}
                     className="w-full rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
                   >
-                    + Agregar horario para {day.label}
+                    + Agregar rango adicional
                   </button>
                 </div>
               )
