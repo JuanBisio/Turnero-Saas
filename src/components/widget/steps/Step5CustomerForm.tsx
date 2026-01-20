@@ -104,14 +104,10 @@ export function Step5CustomerForm() {
     }
   }
 
-// ... imports ...
-
 // Helper to format WhatsApp message
 function getWhatsAppLink(phone: string, text: string) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`
 }
-
-// ... inside component ...
 
   // Update success view
   if (success) {
