@@ -264,7 +264,7 @@ export default function ProfessionalFormPage({
                   key={day.value}
                   type="button"
                   onClick={() => addSchedule(day.value)}
-                  disabled={hasSchedule}
+                  // disabled={hasSchedule} // Allow multiple slots per day (split shifts)
                   className="rounded-lg border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
                 >
                   + {day.label}

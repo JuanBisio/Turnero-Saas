@@ -310,11 +310,12 @@ export default function AgendaPage() {
 
                 try {
                   const dateStr = format(selectedDate, 'yyyy-MM-dd')
-                  const startDateTime = `${dateStr}T${startTime}:00`
-                  const endDateTime = `${dateStr}T${endTime}:00`
+                  const startDateTime = `${startTime}:00`
+                  const endDateTime = `${endTime}:00`
 
                   console.log('Creating exception:', {
                     professional_id: selectedProfessional,
+                    specific_date: dateStr,
                     start_time: startDateTime,
                     end_time: endDateTime,
                     reason: reason || 'Bloqueo manual',
@@ -322,6 +323,7 @@ export default function AgendaPage() {
 
                   const { error, data } = await supabase.from('exceptions').insert({
                     professional_id: selectedProfessional,
+                    specific_date: dateStr,
                     start_time: startDateTime,
                     end_time: endDateTime,
                     reason: reason || 'Bloqueo manual',
