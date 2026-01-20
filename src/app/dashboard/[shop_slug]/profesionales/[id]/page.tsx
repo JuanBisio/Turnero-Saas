@@ -77,6 +77,28 @@ export default function ProfessionalFormPage({
     }
   }
 
+  // Check if two time ranges overlap
+  function doRangesOverlap(
+    start1: string,
+    end1: string,
+    start2: string,
+    end2: string
+  ): boolean {
+    // Convert HH:mm:ss to minutes for comparison
+    const toMinutes = (time: string) => {
+      const [h, m] = time.split(':').map(Number)
+      return h * 60 + m
+    }
+    
+    const s1 = toMinutes(start1)
+    const e1 = toMinutes(end1)
+    const s2 = toMinutes(start2)
+    const e2 = toMinutes(end2)
+    
+    // Ranges overlap if: start1 < end2 AND start2 < end1
+    return s1 < e2 && s2 < e1
+  }
+
   function addSchedule(day: number) {
     setSchedules([
       ...schedules,
@@ -94,9 +116,47 @@ export default function ProfessionalFormPage({
     setSchedules(updated)
   }
 
+  // Validate no overlaps before submit
+  function validateSchedules(): string | null {
+    // Group by day
+    const byDay = schedules.reduce((acc, schedule) => {
+      if (!acc[schedule.day_of_week]) {
+        acc[schedule.day_of_week] = []
+      }
+      acc[schedule.day_of_week].push(schedule)
+      return acc
+    }, {} as Record<number, Schedule[]>)
+
+    // Check each day for overlaps
+    for (const [day, daySchedules] of Object.entries(byDay)) {
+      for (let i = 0; i < daySchedules.length; i++) {
+        for (let j = i + 1; j < daySchedules.length; j++) {
+          if (doRangesOverlap(
+            daySchedules[i].start_time,
+            daySchedules[i].end_time,
+            daySchedules[j].start_time,
+            daySchedules[j].end_time
+          )) {
+            const dayLabel = DAYS.find(d => d.value === parseInt(day))?.label
+            return `Los horarios en ${dayLabel} se superponen. Por favor revisa las horas.`
+          }
+        }
+      }
+    }
+
+    return null
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!shopId || !resolvedParams) return
+
+    // Validate schedules before saving
+    const validationError = validateSchedules()
+    if (validationError) {
+      alert(validationError)
+      return
+    }
 
     setLoading(true)
 
@@ -219,56 +279,73 @@ export default function ProfessionalFormPage({
           </label>
         </div>
 
-        {/* Schedules */}
+        {/* Schedules - Grouped by Day */}
         <div>
           <h3 className="text-lg font-semibold mb-3">Horarios</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Configura uno o más rangos horarios por día (ej: turno mañana y tarde)
+          </p>
           
-          <div className="space-y-3 mb-4">
-            {schedules.map((schedule, index) => {
-              const dayLabel = DAYS.find((d) => d.value === schedule.day_of_week)?.label
+          <div className="space-y-4">
+            {DAYS.map((day) => {
+              const daySchedules = schedules
+                .map((s, idx) => ({ ...s, originalIndex: idx }))
+                .filter((s) => s.day_of_week === day.value)
+              
               return (
-                <div key={index} className="flex items-center gap-3 rounded-lg border p-3">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{dayLabel}</p>
+                <div key={day.value} className="rounded-lg border p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
+                      {day.label}
+                    </h4>
                   </div>
-                  <input
-                    type="time"
-                    value={schedule.start_time.substring(0, 5)}
-                    onChange={(e) => updateSchedule(index, 'start_time', e.target.value + ':00')}
-                    className="rounded border px-2 py-1 text-sm"
-                  />
-                  <span>-</span>
-                  <input
-                    type="time"
-                    value={schedule.end_time.substring(0, 5)}
-                    onChange={(e) => updateSchedule(index, 'end_time', e.target.value + ':00')}
-                    className="rounded border px-2 py-1 text-sm"
-                  />
+                  
+                  {daySchedules.length === 0 ? (
+                    <p className="text-sm text-muted-foreground mb-3">Sin horarios configurados</p>
+                  ) : (
+                    <div className="space-y-2 mb-3">
+                      {daySchedules.map((schedule) => (
+                        <div
+                          key={schedule.originalIndex}
+                          className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                        >
+                          <input
+                            type="time"
+                            value={schedule.start_time.substring(0, 5)}
+                            onChange={(e) =>
+                              updateSchedule(schedule.originalIndex, 'start_time', e.target.value + ':00')
+                            }
+                            className="rounded border px-2 py-1 text-sm bg-background"
+                          />
+                          <span className="text-muted-foreground">-</span>
+                          <input
+                            type="time"
+                            value={schedule.end_time.substring(0, 5)}
+                            onChange={(e) =>
+                              updateSchedule(schedule.originalIndex, 'end_time', e.target.value + ':00')
+                            }
+                            className="rounded border px-2 py-1 text-sm bg-background"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeSchedule(schedule.originalIndex)}
+                            className="ml-auto text-destructive hover:underline text-sm"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
                   <button
                     type="button"
-                    onClick={() => removeSchedule(index)}
-                    className="text-destructive hover:underline text-sm"
+                    onClick={() => addSchedule(day.value)}
+                    className="w-full rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
                   >
-                    Eliminar
+                    + Agregar horario para {day.label}
                   </button>
                 </div>
-              )
-            })}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {DAYS.map((day) => {
-              const hasSchedule = schedules.some((s) => s.day_of_week === day.value)
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => addSchedule(day.value)}
-                  // disabled={hasSchedule} // Allow multiple slots per day (split shifts)
-                  className="rounded-lg border px-3 py-1 text-sm hover:bg-accent disabled:opacity-50"
-                >
-                  + {day.label}
-                </button>
               )
             })}
           </div>

@@ -112,19 +112,18 @@ export async function getAvailableSlots(
   )
 
   // ============================================
-  // STEP 1: Define time frame (get workday)
+  // STEP 1: Define time frame (get workday schedules)
   // ============================================
   const dayOfWeek = getDayOfWeek(date)
 
-  // Get base schedule for this day of week
-  const { data: scheduleData, error: scheduleError } = await supabase
+  // Get ALL schedule ranges for this day of week (supports split shifts)
+  const { data: schedulesData, error: scheduleError } = await supabase
     .from('schedules')
     .select('day_of_week, start_time, end_time')
     .eq('professional_id', professionalId)
     .eq('day_of_week', dayOfWeek)
-    .single()
 
-  if (scheduleError || !scheduleData) {
+  if (scheduleError || !schedulesData || schedulesData.length === 0) {
     // No schedule configured for this day -> no available slots
     return []
   }
@@ -158,17 +157,21 @@ export async function getAvailableSlots(
     exc => exc.startTime !== null && exc.endTime !== null && !exc.isBlocked
   )
 
-  let workdayStart: Date
-  let workdayEnd: Date
+  // Build array of time ranges (either from exception or from all schedules)
+  let timeRanges: Array<{ start: Date; end: Date }> = []
 
   if (workdayException) {
-    // Use exception hours instead of regular schedule
-    workdayStart = combineDateAndTime(date, workdayException.startTime!)
-    workdayEnd = combineDateAndTime(date, workdayException.endTime!)
+    // Use exception hours instead of regular schedules
+    timeRanges = [{
+      start: combineDateAndTime(date, workdayException.startTime!),
+      end: combineDateAndTime(date, workdayException.endTime!)
+    }]
   } else {
-    // Use regular schedule
-    workdayStart = combineDateAndTime(date, scheduleData.start_time)
-    workdayEnd = combineDateAndTime(date, scheduleData.end_time)
+    // Use all regular schedule ranges (supports split shifts)
+    timeRanges = schedulesData.map(schedule => ({
+      start: combineDateAndTime(date, schedule.start_time),
+      end: combineDateAndTime(date, schedule.end_time)
+    }))
   }
 
   // ============================================
@@ -188,14 +191,21 @@ export async function getAvailableSlots(
   }))
 
   // ============================================
-  // STEP 3: Generate potential slot grid
+  // STEP 3: Generate potential slot grid for EACH time range
   // ============================================
-  const potentialSlots = generatePotentialSlots(
-    workdayStart,
-    workdayEnd,
-    blockDuration,
-    AVAILABILITY_CONFIG.SLOT_INTERVAL_MINUTES
-  )
+  let allPotentialSlots: TimeSlot[] = []
+
+  for (const range of timeRanges) {
+    const rangeSlots = generatePotentialSlots(
+      range.start,
+      range.end,
+      blockDuration,
+      AVAILABILITY_CONFIG.SLOT_INTERVAL_MINUTES
+    )
+    allPotentialSlots = allPotentialSlots.concat(rangeSlots)
+  }
+
+  const potentialSlots = allPotentialSlots
 
   if (potentialSlots.length === 0) {
     // Service is too long for the workday
