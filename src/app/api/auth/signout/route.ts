@@ -11,5 +11,6 @@ export async function POST(request: NextRequest) {
   await supabase.auth.signOut()
 
   // Dynamic redirect to /login on the same domain
-  return NextResponse.redirect(new URL('/login', request.url))
+  // Use status 303 to force the browser to use GET for the next request
+  return NextResponse.redirect(new URL('/login', request.url), { status: 303 })
 }
