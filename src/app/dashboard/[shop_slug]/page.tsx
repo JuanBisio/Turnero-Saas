@@ -7,10 +7,7 @@ import { requireShopAccess } from '@/lib/auth/server'
 import { createClient } from '@/lib/supabase/server'
 import { format, subDays, startOfMonth, subMonths, eachMonthOfInterval } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { KPICard } from '@/components/dashboard/KPICard'
-import { RevenueChart } from '@/components/dashboard/RevenueChart'
-import { TopServicesChart } from '@/components/dashboard/TopServicesChart'
-import { Calendar, DollarSign, CheckCircle, Users } from 'lucide-react'
+import { DashboardContent } from '@/components/dashboard/DashboardContent'
 import { formatInTimeZone } from 'date-fns-tz'
 
 export default async function DashboardHomePage({
@@ -185,7 +182,8 @@ export default async function DashboardHomePage({
     .map(([name, value], index) => ({
       name,
       value: value as number,
-      color: ['#0ea5e9', '#f59e0b', '#10b981', '#f43f5e'][index] || '#94a3b8'
+      // Dribbble Pastel Palette: Electric Blue, Lavender, Mint, Rose
+      color: ['#7DD3FC', '#E0E7FF', '#34D399', '#FDA4AF'][index] || '#94a3b8'
     }))
   
   // Fallback if no data
@@ -193,114 +191,21 @@ export default async function DashboardHomePage({
     { name: 'Sin datos', value: 1, color: '#334155' }
   ]
   
+  
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      <div>
-        <h1 className="text-3xl font-bold font-heading">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Bienvenido a {shop.name}
-        </p>
-      </div>
-  
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard
-          title="Turnos Hoy"
-          value={turnosHoy?.toString() || "0"}
-          change={changeTurnos}
-          trendLabel="vs. ayer"
-          icon={Calendar}
-          iconVariant="primary"
-        />
-  
-        <KPICard
-          title="Revenue Hoy"
-          value={`$${revenueHoy.toLocaleString()}`}
-          change={changeRevenue}
-          trendLabel="vs. ayer"
-          icon={DollarSign}
-          iconVariant="secondary"
-        />
-  
-        <KPICard
-          title="Turnos Semana"
-          value={turnosSemana?.toString() || "0"}
-          change={changeTurnosSemana}
-          trendLabel="vs. semana ant."
-          icon={CheckCircle}
-          iconVariant="success"
-        />
-  
-        <KPICard
-          title="Tasa Confirmación"
-          value={`${tasaConfirmacion}%`}
-          change={changeTasa}
-          trendLabel="vs. mes ant."
-          icon={Users}
-          iconVariant="warning"
-        />
-      </div>
-
-      {/* Today's Appointments */}
-      <div className="rounded-xl border bg-card p-6">
-        <h2 className="text-xl font-bold font-heading mb-4">Turnos de Hoy</h2>
-        
-        {!todayApts || todayApts.length === 0 ? (
-          <p className="text-center py-12 text-muted-foreground">
-            No hay turnos para hoy
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {todayApts.map((apt: any) => (
-              <div
-                key={apt.id}
-                className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex-1">
-                  <p className="font-medium">{apt.customer_name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatInTimeZone(new Date(apt.start_time), 'America/Argentina/Buenos_Aires', 'HH:mm')}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      apt.status === 'confirmado'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                        : apt.status === 'pendiente'
-                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                    }`}
-                  >
-                    {apt.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-xl border bg-card p-6">
-          <h2 className="text-xl font-bold font-heading mb-4">Revenue Últimos 6 Meses</h2>
-          <div className="h-64">
-            <RevenueChart 
-              data={revenueChartData}
-            />
-          </div>
-        </div>
-        
-        <div className="rounded-xl border bg-card p-6">
-          <h2 className="text-xl font-bold font-heading mb-4">Top Servicios</h2>
-          <div className="h-64">
-            <TopServicesChart 
-              data={finalTopServicesData}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    <DashboardContent 
+      shopName={shop.name}
+      turnosHoy={turnosHoy}
+      changeTurnos={changeTurnos}
+      revenueHoy={revenueHoy}
+      changeRevenue={changeRevenue}
+      turnosSemana={turnosSemana}
+      changeTurnosSemana={changeTurnosSemana}
+      tasaConfirmacion={tasaConfirmacion}
+      changeTasa={changeTasa}
+      revenueChartData={revenueChartData}
+      topServicesData={topServicesData}
+      todayApts={todayApts || []}
+    />
   )
 }

@@ -36,13 +36,15 @@ export function TopServicesChart({ data }: TopServicesChartProps) {
           </Pie>
           <Tooltip 
             contentStyle={{
-              backgroundColor: 'rgba(15, 23, 42, 0.8)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-              color: '#f8fafc'
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              backdropFilter: 'blur(16px)',
+              border: '0.5px solid rgba(255,255,255,0.1)',
+              borderRadius: '16px',
+              padding: '12px 16px',
+              color: '#f8fafc',
+              boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.3)'
             }}
-            itemStyle={{ color: '#f8fafc' }}
+            itemStyle={{ color: '#E0E7FF', fontWeight: 600 }}
           />
           <Legend 
             verticalAlign="bottom"

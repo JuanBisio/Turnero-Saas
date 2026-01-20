@@ -74,17 +74,17 @@ export default function ProfesionalesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Profesionales</h2>
+          <h2 className="text-4xl font-bold font-heading text-white text-glow mb-2">Profesionales</h2>
           <p className="text-muted-foreground">
             Administra los profesionales de {shopData?.name}
           </p>
         </div>
         <Link
           href={`/dashboard/${shopData?.slug}/profesionales/nuevo`}
-          className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90"
+          className="px-6 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold shadow-lg shadow-white/10 transition-all duration-300 hover:-translate-y-0.5"
         >
           + Nuevo Profesional
         </Link>

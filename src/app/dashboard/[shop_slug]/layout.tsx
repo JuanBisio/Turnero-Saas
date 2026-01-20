@@ -6,7 +6,8 @@
 import { ShopProvider } from '@/components/providers/ShopProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { DashboardSidebar } from '@/components/dashboard/layout/DashboardSidebar'
-import { DashboardHeader } from '@/components/dashboard/layout/DashboardHeader'
+
+import { PageWrapper } from '@/components/ui/PageWrapper'
 
 export default async function DashboardLayout({
   children,
@@ -31,10 +32,12 @@ export default async function DashboardLayout({
 
           {/* Main Content */}
           <div className="flex flex-1 flex-col overflow-hidden">
-            <DashboardHeader />
+
             
-            <main className="flex-1 overflow-y-auto bg-background p-6">
-              {children}
+            <main className="flex-1 overflow-y-auto bg-transparent p-6">
+              <PageWrapper>
+                {children}
+              </PageWrapper>
             </main>
           </div>
         </div>

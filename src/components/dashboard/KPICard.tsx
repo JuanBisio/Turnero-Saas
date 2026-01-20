@@ -1,16 +1,26 @@
 /**
- * KPI Card Component
- * Display key metrics with trend indicators and glassmorphism style
+ * Soft-UI KPI Card Component
+ * Display key metrics with glassmorphism and Framer Motion animations
  */
 
-import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+'use client'
+
+import { LucideIcon, TrendingUp, TrendingDown, Minus, Calendar, DollarSign, CheckCircle, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { GlassIcon } from '@/components/ui/GlassIcon'
+
+// Icon mapping to avoid serialization issues
+const iconMap: Record<string, LucideIcon> = {
+  Calendar,
+  DollarSign,
+  CheckCircle,
+  Users,
+}
 
 interface KPICardProps {
   title: string
   value: string
-  icon: LucideIcon
+  icon: string  // Changed from LucideIcon to string
   change?: number
   trendLabel?: string
   className?: string
@@ -20,42 +30,62 @@ interface KPICardProps {
 export function KPICard({
   title,
   value,
-  icon: Icon,
+  icon: iconName,
   change: trend,
   trendLabel,
   className,
   iconVariant = 'primary'
 }: KPICardProps) {
+  const Icon = iconMap[iconName] || Calendar  // Fallback to Calendar if not found
+  
   return (
-    <div className={cn("glass-card p-6 flex items-start justify-between relative overflow-hidden group", className)}>
-      {/* Background Glow on Hover */}
-      <div className="absolute -right-10 -top-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-500" />
+    <div
+      className={cn(
+        "relative overflow-hidden group h-full flex flex-col justify-between p-8",
+        className
+      )}
+    >
+      {/* Soft gradient overlay */}
+      <div className="absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br from-cyan-500/10 to-transparent rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
-      <div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
-        <h3 className="text-3xl font-bold font-heading tracking-tight mb-2 text-foreground">{value}</h3>
+      <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-zinc-400 mb-2 uppercase tracking-wider">{title}</p>
+          <h3 className="text-5xl font-bold font-heading tracking-tight text-white text-glow">
+            {value}
+          </h3>
+        </div>
+        
         
         {trend !== undefined && (
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs mt-4">
             <span className={cn(
-              "flex items-center px-1.5 py-0.5 rounded-full font-medium",
-              trend > 0 ? "bg-emerald-500/10 text-emerald-400" : 
-              trend < 0 ? "bg-rose-500/10 text-rose-400" : 
-              "bg-slate-500/10 text-slate-400"
+              "flex items-center px-2.5 py-1 rounded-full font-bold backdrop-blur-md shadow-sm border",
+              trend > 0 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.2)]" : 
+              trend < 0 ? "bg-rose-500/10 text-rose-400 border-rose-500/20 shadow-[0_0_10px_rgba(251,113,133,0.2)]" : 
+              "bg-zinc-800/30 text-zinc-400 border-white/10"
             )}>
               {trend > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : 
                trend < 0 ? <TrendingDown className="w-3 h-3 mr-1" /> : 
                <Minus className="w-3 h-3 mr-1" />}
               {Math.abs(trend)}%
             </span>
-            <span className="text-muted-foreground">{trendLabel || 'vs. periodo anterior'}</span>
+            <span className="text-zinc-500 font-medium">{trendLabel || 'vs. periodo anterior'}</span>
           </div>
         )}
       </div>
 
-      <GlassIcon variant={iconVariant} size="md">
-        <Icon />
-      </GlassIcon>
+      <div className="absolute bottom-5 right-5 opacity-90 group-hover:opacity-100 transition-all duration-500 group-hover:scale-110 group-hover:-rotate-12">
+        <GlassIcon variant={iconVariant} size="lg">
+          <Icon className={cn(
+            "drop-shadow-lg", 
+            iconVariant === 'primary' && "glow-icon-blue",
+            iconVariant === 'secondary' && "glow-icon-mint",
+            iconVariant === 'success' && "glow-icon-lavender",
+            iconVariant === 'warning' && "glow-icon-rose"
+          )}/>
+        </GlassIcon>
+      </div>
     </div>
   )
 }

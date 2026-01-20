@@ -40,31 +40,33 @@ export function GlassIcon({
   }
 
   const variantColors = {
-    primary: 'text-blue-400',
-    secondary: 'text-cyan-400',
-    success: 'text-emerald-400',
-    warning: 'text-amber-400',
+    primary: 'text-cyan-300',
+    secondary: 'text-fuchsia-300',
+    success: 'text-emerald-300',
+    warning: 'text-rose-300',
   }
 
   return (
-    <div className={cn('glass-icon', sizeClasses[size], className)}>
-      {/* Glossy reflection effect is handled by CSS .glass-icon::before */}
-      
-      {/* Inner glow specific to variant */}
+    <div className={cn('relative flex items-center justify-center rounded-2xl glass-midnight overflow-hidden', sizeClasses[size], className)}>
+      {/* Background Glow */}
       <div className={cn(
-        'absolute inset-0 opacity-20 blur-md',
-        variant === 'primary' && 'bg-blue-500',
-        variant === 'secondary' && 'bg-cyan-500',
-        variant === 'success' && 'bg-emerald-500',
-        variant === 'warning' && 'bg-amber-500',
+        'absolute inset-0 opacity-20 blur-xl',
+        variant === 'primary' && 'bg-cyan-400',
+        variant === 'secondary' && 'bg-fuchsia-400',
+        variant === 'success' && 'bg-emerald-400',
+        variant === 'warning' && 'bg-rose-400',
       )} />
 
-      {/* The Icon */}
-      {/* cloneElement allows us to inject classes into the passed icon */}
+       {/* Icon Render */}
        {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
           return React.cloneElement(child as React.ReactElement<any>, {
-            className: cn('relative z-10 drop-shadow-md', iconSizes[size], variantColors[variant], (child.props as any).className)
+            className: cn(
+                'relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]', 
+                iconSizes[size], 
+                variantColors[variant], 
+                (child.props as any).className
+            )
           })
         }
         return child

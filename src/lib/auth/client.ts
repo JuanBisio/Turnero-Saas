@@ -51,7 +51,23 @@ export async function signIn(email: string, password: string) {
 
 export async function signUp(email: string, password: string) {
   const supabase = createClient()
-  return await supabase.auth.signUp({ email, password })
+  return await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  })
+}
+
+export async function signInWithOtp(email: string) {
+  const supabase = createClient()
+  return await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    },
+  })
 }
 
 export async function signOut() {

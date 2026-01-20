@@ -9,6 +9,16 @@ import { useShop } from '@/components/providers/ShopProvider'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Trash2, Lock, Clock, CheckCircle, Plus } from 'lucide-react'
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const DAYS = [
   { value: 1, label: 'Lunes' },
@@ -19,6 +29,12 @@ const DAYS = [
   { value: 6, label: 'Sábado' },
   { value: 0, label: 'Domingo' },
 ]
+
+const TIME_OPTIONS = Array.from({ length: 96 }).map((_, i) => {
+  const h = Math.floor(i / 4)
+  const m = (i % 4) * 15
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+})
 
 type Schedule = {
   day_of_week: number
@@ -85,7 +101,6 @@ export default function ProfessionalFormPage({
     start2: string,
     end2: string
   ): boolean {
-    // Convert HH:mm:ss to minutes for comparison
     const toMinutes = (time: string) => {
       const [h, m] = time.split(':').map(Number)
       return h * 60 + m
@@ -96,7 +111,6 @@ export default function ProfessionalFormPage({
     const s2 = toMinutes(start2)
     const e2 = toMinutes(end2)
     
-    // Ranges overlap if: start1 < end2 AND start2 < end1
     return s1 < e2 && s2 < e1
   }
 
@@ -119,7 +133,6 @@ export default function ProfessionalFormPage({
 
   // Validate no overlaps before submit
   function validateSchedules(): string | null {
-    // Group by day
     const byDay = schedules.reduce((acc, schedule) => {
       if (!acc[schedule.day_of_week]) {
         acc[schedule.day_of_week] = []
@@ -128,7 +141,6 @@ export default function ProfessionalFormPage({
       return acc
     }, {} as Record<number, Schedule[]>)
 
-    // Check each day for overlaps
     for (const [day, daySchedules] of Object.entries(byDay)) {
       for (let i = 0; i < daySchedules.length; i++) {
         for (let j = i + 1; j < daySchedules.length; j++) {
@@ -152,7 +164,6 @@ export default function ProfessionalFormPage({
     e.preventDefault()
     if (!shopId || !resolvedParams) return
 
-    // Validate schedules before saving
     const validationError = validateSchedules()
     if (validationError) {
       alert(validationError)
@@ -163,7 +174,6 @@ export default function ProfessionalFormPage({
 
     try {
       if (isEdit) {
-        // Update professional
         await supabase
           .from('professionals')
           .update({
@@ -173,13 +183,11 @@ export default function ProfessionalFormPage({
           })
           .eq('id', resolvedParams.id)
 
-        // Delete old schedules
         await supabase
           .from('schedules')
           .delete()
           .eq('professional_id', resolvedParams.id)
 
-        // Insert new schedules
         if (schedules.length > 0) {
           await supabase.from('schedules').insert(
             schedules.map((s) => ({
@@ -191,7 +199,6 @@ export default function ProfessionalFormPage({
           )
         }
       } else {
-        // Create professional
         const { data: newProf } = await supabase
           .from('professionals')
           .insert({
@@ -203,7 +210,6 @@ export default function ProfessionalFormPage({
           .select()
           .single()
 
-        // Insert schedules
         if (newProf && schedules.length > 0) {
           await supabase.from('schedules').insert(
             schedules.map((s) => ({
@@ -226,172 +232,231 @@ export default function ProfessionalFormPage({
   }
 
   if (!resolvedParams) {
-    return <div>Cargando...</div>
+    return <div className="text-white">Cargando...</div>
   }
 
   return (
-    <div className="max-w-2xl">
-      <h2 className="text-3xl font-bold mb-6">
+    <div className="max-w-3xl mx-auto">
+      <h2 className="text-4xl font-heading font-bold mb-8 text-white tracking-tight text-center">
         {isEdit ? 'Editar' : 'Nuevo'} Profesional
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Nombre *</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border bg-background px-4 py-2"
-            required
-          />
-        </div>
+      <div className="glass-card-dark p-8 rounded-3xl relative overflow-hidden">
+        {/* Glow Effect */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-pastel-lavender/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-        {/* Buffer Time */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Tiempo de buffer (minutos) *
-          </label>
-          <input
-            type="number"
-            value={bufferTime}
-            onChange={(e) => setBufferTime(parseInt(e.target.value))}
-            className="w-full rounded-lg border bg-background px-4 py-2"
-            min="0"
-            required
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Tiempo adicional entre turnos para preparación
-          </p>
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Name */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300">Nombre *</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full h-12 rounded-xl border border-white/10 bg-slate-950/50 px-4 text-white placeholder:text-slate-600 focus:border-pastel-lavender/50 focus:bg-white/5 focus:outline-none focus:ring-1 focus:ring-pastel-lavender/50 transition-all duration-300"
+                required
+              />
+            </div>
 
-        {/* Active */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="active"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-            className="h-4 w-4"
-          />
-          <label htmlFor="active" className="text-sm font-medium">
-            Activo (disponible para reservas)
-          </label>
-        </div>
-
-        {/* Schedules - Grouped by Day */}
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Horarios</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Configura uno o más rangos horarios por día (ej: turno mañana y tarde)
-          </p>
-          
-          {/* Day Selector Buttons */}
-          <div className="flex gap-2 mb-6 flex-wrap">
-            {DAYS.map((day) => {
-              const hasSchedules = schedules.some(s => s.day_of_week === day.value)
-              return (
-                <button
-                  key={day.value}
-                  type="button"
-                  onClick={() => {
-                    if (!hasSchedules) {
-                      addSchedule(day.value)
-                    }
-                  }}
-                  className={cn(
-                    "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    hasSchedules
-                      ? "bg-primary text-primary-foreground cursor-default"
-                      : "border border-dashed border-primary/50 text-primary hover:bg-primary/10"
-                  )}
-                >
-                  {day.label.substring(0, 2)}
-                </button>
-              )
-            })}
+            {/* Buffer Time */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300">
+                Tiempo de buffer (min) *
+              </label>
+              <input
+                type="number"
+                value={bufferTime}
+                onChange={(e) => setBufferTime(parseInt(e.target.value))}
+                className="w-full h-12 rounded-xl border border-white/10 bg-slate-950/50 px-4 text-white placeholder:text-slate-600 focus:border-pastel-lavender/50 focus:bg-white/5 focus:outline-none focus:ring-1 focus:ring-pastel-lavender/50 transition-all duration-300"
+                min="0"
+                required
+              />
+              <p className="text-xs text-slate-500">
+                Tiempo adicional entre turnos
+              </p>
+            </div>
           </div>
-          
-          <div className="space-y-4">
-            {DAYS.filter(day => schedules.some(s => s.day_of_week === day.value)).map((day) => {
-              const daySchedules = schedules
-                .map((s, idx) => ({ ...s, originalIndex: idx }))
-                .filter((s) => s.day_of_week === day.value)
-              
-              return (
-                <div key={day.value} className="rounded-lg border p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                      {day.label}
-                    </h4>
-                  </div>
+
+          {/* Active */}
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.05] transition-colors cursor-pointer" onClick={() => setIsActive(!isActive)}>
+            <div className={`w-6 h-6 rounded-lg border flex items-center justify-center transition-all ${isActive ? 'bg-indigo-500 border-indigo-500' : 'border-zinc-600 bg-transparent'}`}>
+              {isActive && <CheckCircle className="w-4 h-4 text-white" />}
+            </div>
+            <label className="text-sm font-medium text-zinc-200 cursor-pointer select-none">
+              Profesional Activo
+            </label>
+            <span className="text-xs text-zinc-500 ml-auto">
+              {isActive ? 'Visible para reservas' : 'Oculto en el widget'}
+            </span>
+          </div>
+
+          <div className="h-px bg-white/5 w-full" />
+
+          {/* Schedules */}
+          <div>
+            <h3 className="text-lg font-bold text-white mb-2">Horarios de Atención</h3>
+            <p className="text-sm text-zinc-400 mb-6">
+              Selecciona los días y define los rangos horarios.
+            </p>
+            
+            {/* Day Selector Pills - Unified Neutral Style */}
+            <div className="flex gap-2 mb-8 flex-wrap">
+              {DAYS.map((day) => {
+                const hasSchedules = schedules.some(s => s.day_of_week === day.value)
+                return (
+                  <motion.button
+                    key={day.value}
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (!hasSchedules) {
+                        addSchedule(day.value)
+                      }
+                    }}
+                    className={cn(
+                      "px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border",
+                      hasSchedules
+                        ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+                        : "bg-transparent border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20"
+                    )}
+                  >
+                    {day.label}
+                  </motion.button>
+                )
+              })}
+            </div>
+            
+            <div className="space-y-4">
+              <AnimatePresence mode="popLayout">
+                {DAYS.filter(day => schedules.some(s => s.day_of_week === day.value)).map((day) => {
+                  const daySchedules = schedules
+                    .map((s, idx) => ({ ...s, originalIndex: idx }))
+                    .filter((s) => s.day_of_week === day.value)
                   
-                  <div className="space-y-2 mb-3">
-                    {daySchedules.map((schedule) => (
-                      <div
-                        key={schedule.originalIndex}
-                        className="flex items-center gap-3 rounded-lg border bg-card p-3"
-                      >
-                        <input
-                          type="time"
-                          value={schedule.start_time.substring(0, 5)}
-                          onChange={(e) =>
-                            updateSchedule(schedule.originalIndex, 'start_time', e.target.value + ':00')
-                          }
-                          className="rounded border px-2 py-1 text-sm bg-background"
-                        />
-                        <span className="text-muted-foreground">-</span>
-                        <input
-                          type="time"
-                          value={schedule.end_time.substring(0, 5)}
-                          onChange={(e) =>
-                            updateSchedule(schedule.originalIndex, 'end_time', e.target.value + ':00')
-                          }
-                          className="rounded border px-2 py-1 text-sm bg-background"
-                        />
+                  return (
+                    <motion.div
+                      key={day.value}
+                      layout
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ type: 'tween', ease: 'easeOut', duration: 0.3 }}
+                      className="rounded-2xl border border-white/10 bg-white/[0.02] overflow-hidden"
+                    >
+                      <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+                        <h4 className="font-semibold text-white">
+                          {day.label}
+                        </h4>
+                        <span className="text-xs text-zinc-500">{daySchedules.length} rangos</span>
+                      </div>
+                      
+                      <div className="p-4 space-y-3">
+                        <AnimatePresence mode="popLayout">
+                          {daySchedules.map((schedule) => (
+                            <motion.div
+                              key={schedule.originalIndex}
+                              layout
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -10 }}
+                              className="flex items-center gap-3"
+                            >
+                              <div className="flex-1 flex items-center gap-3 bg-[#0A0A0A] border border-white/5 rounded-xl p-1 pr-4">
+                                <Select
+                                  value={schedule.start_time.substring(0, 5)}
+                                  onValueChange={(val) =>
+                                    updateSchedule(schedule.originalIndex, 'start_time', val + ':00')
+                                  }
+                                >
+                                  <SelectTrigger className="w-[100px] bg-transparent border-none text-white focus:ring-0 h-10 hover:bg-white/5 transition-colors justify-center font-medium">
+                                    <SelectValue placeholder="Inicio" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[200px]">
+                                    {TIME_OPTIONS.map((time) => (
+                                      <SelectItem 
+                                        key={`start-${time}`} 
+                                        value={time}
+                                        className="focus:bg-white/10 focus:text-white"
+                                      >
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+
+                                <span className="text-zinc-600 font-medium">-</span>
+
+                                <Select
+                                  value={schedule.end_time.substring(0, 5)}
+                                  onValueChange={(val) =>
+                                    updateSchedule(schedule.originalIndex, 'end_time', val + ':00')
+                                  }
+                                >
+                                  <SelectTrigger className="w-[100px] bg-transparent border-none text-white focus:ring-0 h-10 hover:bg-white/5 transition-colors justify-center font-medium">
+                                    <SelectValue placeholder="Fin" />
+                                  </SelectTrigger>
+                                  <SelectContent className="bg-zinc-950 border-white/10 text-white max-h-[200px]">
+                                    {TIME_OPTIONS.map((time) => (
+                                      <SelectItem 
+                                        key={`end-${time}`} 
+                                        value={time}
+                                        className="focus:bg-white/10 focus:text-white"
+                                      >
+                                        {time}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <button
+                                type="button"
+                                onClick={() => removeSchedule(schedule.originalIndex)}
+                                className="p-3 rounded-xl hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors border border-transparent hover:border-red-500/20"
+                                title="Eliminar rango"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+
                         <button
                           type="button"
-                          onClick={() => removeSchedule(schedule.originalIndex)}
-                          className="ml-auto text-destructive hover:underline text-sm"
+                          onClick={() => addSchedule(day.value)}
+                          className="w-full mt-2 py-3 rounded-xl border border-dashed border-white/10 text-xs font-medium text-zinc-500 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all flex items-center justify-center gap-2"
                         >
-                          Eliminar
+                          <Plus className="w-3 h-3" /> Agregar Horario
                         </button>
                       </div>
-                    ))}
-                  </div>
-                  
-                  <button
-                    type="button"
-                    onClick={() => addSchedule(day.value)}
-                    className="w-full rounded-lg border border-dashed border-primary/50 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
-                  >
-                    + Agregar rango adicional
-                  </button>
-                </div>
-              )
-            })}
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {loading ? 'Guardando...' : 'Guardar'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="rounded-lg border px-4 py-2 hover:bg-accent"
-          >
-            Cancelar
-          </button>
-        </div>
-      </form>
+          {/* Actions */}
+          <div className="flex gap-4 pt-4 border-t border-white/5">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-6 py-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold shadow-lg shadow-white/10 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {loading ? 'Guardando...' : 'Guardar Profesional'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex-1 px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-300"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

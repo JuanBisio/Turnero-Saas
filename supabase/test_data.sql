@@ -32,7 +32,7 @@ BEGIN
   
   -- Get professional IDs
   SELECT id INTO prof1_id FROM professionals WHERE shop_id = shop_id_var AND name = 'María González' LIMIT 1;
-  SELECT id INTO prof2_id FROM professionals WHERE shop_id = shop_id_var AND name = 'Juan Pérez' LIMIT 1;
+  SELECT id INTO prof2_id FROM professionals WHERE shop_id = shop_id_var AND name = 'Leo Messi' LIMIT 1;
   
   -- Insert schedules for María
   INSERT INTO schedules (professional_id, day_of_week, start_time, end_time)

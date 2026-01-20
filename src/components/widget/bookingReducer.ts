@@ -14,21 +14,18 @@ export function bookingReducer(
       return {
         ...state,
         selectedService: action.service,
-        currentStep: 2,
       }
 
     case 'SELECT_PROFESSIONAL':
       return {
         ...state,
         selectedProfessional: action.professional,
-        currentStep: 3,
       }
 
     case 'SELECT_DATE':
       return {
         ...state,
         selectedDate: action.date,
-        currentStep: 4,
         selectedTime: null, // Reset time when date changes
       }
 
@@ -36,7 +33,6 @@ export function bookingReducer(
       return {
         ...state,
         selectedTime: action.time,
-        currentStep: 5,
       }
 
     case 'UPDATE_CUSTOMER_DATA':

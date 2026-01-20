@@ -88,79 +88,94 @@ export default function ServiceFormPage({
   }
 
   if (!resolvedParams) {
-    return <div>Cargando...</div>
+    return <div className="text-white">Cargando...</div>
   }
 
   return (
-    <div className="max-w-2xl">
-      <h2 className="text-3xl font-bold mb-6">
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-4xl font-heading font-bold mb-8 text-white tracking-tight text-center">
         {isEdit ? 'Editar' : 'Nuevo'} Servicio
       </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Nombre *</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border bg-background px-4 py-2"
-            placeholder="Ej: Corte de Cabello"
-            required
-          />
-        </div>
+      <div className="glass-card-dark p-8 rounded-3xl relative overflow-hidden">
+        {/* Glow Effect */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-pastel-blue/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-        {/* Duration */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Duración (minutos) *
-          </label>
-          <input
-            type="number"
-            value={duration}
-            onChange={(e) => setDuration(parseInt(e.target.value))}
-            className="w-full rounded-lg border bg-background px-4 py-2"
-            min="5"
-            step="5"
-            required
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+          {/* Name */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-300">Nombre del Servicio *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full h-12 rounded-xl border border-white/10 bg-slate-950/50 px-4 text-white placeholder:text-slate-600 focus:border-pastel-blue/50 focus:bg-white/5 focus:outline-none focus:ring-1 focus:ring-pastel-blue/50 transition-all duration-300"
+              placeholder="Ej: Corte de Cabello Premium"
+              required
+            />
+          </div>
 
-        {/* Price */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Precio (opcional)
-          </label>
-          <input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full rounded-lg border bg-background px-4 py-2"
-            placeholder="0.00"
-            step="0.01"
-            min="0"
-          />
-        </div>
+          <div className="grid grid-cols-2 gap-6">
+            {/* Duration */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300">
+                Duración (min) *
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value))}
+                  className="w-full h-12 rounded-xl border border-white/10 bg-slate-950/50 px-4 text-white placeholder:text-slate-600 focus:border-pastel-mint/50 focus:bg-white/5 focus:outline-none focus:ring-1 focus:ring-pastel-mint/50 transition-all duration-300"
+                  min="5"
+                  step="5"
+                  required
+                />
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <span className="text-xs font-medium text-slate-500">MIN</span>
+                </div>
+              </div>
+            </div>
 
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {loading ? 'Guardando...' : 'Guardar'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="rounded-lg border px-4 py-2 hover:bg-accent"
-          >
-            Cancelar
-          </button>
-        </div>
-      </form>
+            {/* Price */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300">
+                Precio (opcional)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                <input
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full h-12 rounded-xl border border-white/10 bg-slate-950/50 pl-8 pr-4 text-white placeholder:text-slate-600 focus:border-pastel-lavender/50 focus:bg-white/5 focus:outline-none focus:ring-1 focus:ring-pastel-lavender/50 transition-all duration-300"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-4 pt-6">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-6 py-3 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold shadow-lg shadow-white/10 transition-all duration-300 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {loading ? 'Guardando...' : 'Guardar Servicio'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex-1 px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 text-slate-300 hover:text-white transition-all duration-300"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
