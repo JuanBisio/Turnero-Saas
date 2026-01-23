@@ -6,12 +6,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
+import { getAvailableSlots } from '@/lib/availability'
 
 // Create a public Supabase client (bypasses RLS for public widget)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function GET(request: NextRequest) {
+  // Create public client outside try block
+  const supabase = createClient<Database>(supabaseUrl, supabaseKey)
+
   try {
     const { searchParams } = new URL(request.url)
     
@@ -26,17 +30,13 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    const supabase = createClient<Database>(supabaseUrl, supabaseKey)
-
-    // Import the availability function dynamically
-    const { getAvailableSlots } = await import('@/lib/availability')
     
     const slots = await getAvailableSlots({
       date,
       serviceId,
       professionalId,
       shopId,
+      supabaseClient: supabase,
     })
 
     return NextResponse.json({

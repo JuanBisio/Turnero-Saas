@@ -52,7 +52,7 @@ import { filterAvailableSlots } from './collisionDetection'
 export async function getAvailableSlots(
   params: AvailabilityParams
 ): Promise<AvailabilityResult> {
-  const { date, serviceId, professionalId, shopId } = params
+  const { date, serviceId, professionalId, shopId, supabaseClient } = params
 
   // ============================================
   // VALIDATION: Check booking window (30 days)
@@ -61,7 +61,8 @@ export async function getAvailableSlots(
     throw new Error('La fecha está fuera de la ventana de reserva (máximo 30 días)')
   }
 
-  const supabase = await createClient()
+  // Use provided client or create authenticated server client
+  const supabase: any = supabaseClient || await createClient()
 
   // ============================================
   // STEP 0: Fetch service and professional data

@@ -124,7 +124,7 @@ export function Step5CustomerForm() {
         </h3>
         
         <p className="text-zinc-400 text-lg mb-8 max-w-md leading-relaxed">
-          ¡Listo! Te hemos enviado un mensaje de confirmación a tu WhatsApp.
+          ¡Listo! Recibirás una confirmación por WhatsApp en segundos.
         </p>
         
         <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 backdrop-blur-sm">
@@ -135,6 +135,7 @@ export function Step5CustomerForm() {
       </div>
     )
   }
+
 
   return (
     <div className="space-y-6">

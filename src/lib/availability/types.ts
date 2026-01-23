@@ -3,6 +3,9 @@
  * Phase 2 - Turnero SaaS
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '../supabase/database.types'
+
 /**
  * A time slot with start and end times
  */
@@ -23,6 +26,8 @@ export type AvailabilityParams = {
   professionalId: string
   /** UUID of the shop (for RLS) */
   shopId: string
+  /** Optional Supabase client (for public access without authentication) */
+  supabaseClient?: SupabaseClient<Database>
 }
 
 /**
