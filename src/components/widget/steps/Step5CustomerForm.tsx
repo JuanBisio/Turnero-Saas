@@ -48,10 +48,18 @@ export function Step5CustomerForm() {
       return
     }
 
-    // Validate phone length (needs actual number after +54 9)
-    // +54 9 is 6 chars. We expect at least ~10 digits after.
-    if (!name || !phone || phone.length < 10) {
-      alert('Por favor completa todos los campos correctamente')
+    // Validation
+    if (!name) {
+      alert('Por favor ingresa tu nombre')
+      return
+    }
+
+    if (!phone || phone.length < 13) { // +54 9 (6) + 1234 (4) = 10 minimum? Let's be safer. +54 9 11 1111 1111 is standard.
+       // +54 9 (6 chars). 
+       // If user types minimal valid number: 11 1234 5678 (10 digits). Total length = 6+10 = 16.
+       // Let's require at least 10 chars total which means 4 digits. That's too low.
+       // Let's require length > 12 (implies at least 7 digits after prefix)
+      alert('Por favor ingresa un número de teléfono válido (mínimo 7 dígitos)')
       return
     }
 
