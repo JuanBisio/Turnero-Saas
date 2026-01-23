@@ -136,7 +136,7 @@ export async function getAvailableSlots(
     .eq('professional_id', professionalId)
     .eq('specific_date', date)
 
-  const exceptions: ExceptionData[] = (exceptionsData || []).map(exc => ({
+  const exceptions: ExceptionData[] = (exceptionsData || []).map((exc: any) => ({
     specificDate: exc.specific_date,
     startTime: exc.start_time,
     endTime: exc.end_time,
@@ -169,7 +169,7 @@ export async function getAvailableSlots(
     }]
   } else {
     // Use all regular schedule ranges (supports split shifts)
-    timeRanges = schedulesData.map(schedule => ({
+    timeRanges = schedulesData.map((schedule: any) => ({
       start: combineDateAndTime(date, schedule.start_time),
       end: combineDateAndTime(date, schedule.end_time)
     }))
@@ -186,7 +186,7 @@ export async function getAvailableSlots(
     .lt('start_time', `${date}T23:59:59`)
     .in('status', ['pendiente', 'confirmado', 'completado', 'no_asistio'])
 
-  const appointments: AppointmentOccupation[] = (appointmentsData || []).map(apt => ({
+  const appointments: AppointmentOccupation[] = (appointmentsData || []).map((apt: any) => ({
     startTime: new Date(apt.start_time),
     endTime: new Date(apt.end_time),
   }))
