@@ -18,11 +18,27 @@ export function Step5CustomerForm() {
   const { state, dispatch } = useBooking()
   const { shopId } = useShop()
   const [name, setName] = useState(state.customerName)
-  const [phone, setPhone] = useState(state.customerPhone)
-  const [email, setEmail] = useState(state.customerEmail)
+  // Initialize phone with +54 9 if empty
+  const [phone, setPhone] = useState(state.customerPhone || '+54 9 ')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const supabase = createClient()
+
+  // Ensure phone always starts with +54 9
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value
+    if (!val.startsWith('+54 9')) {
+       // If user tries to delete the prefix, reset/prevent it
+       if (val.startsWith('+54 ')) {
+          val = '+54 9 ' + val.substring(4) // Keep space
+       } else if (val.startsWith('+54')) {
+          val = '+54 9 '
+       } else {
+          val = '+54 9 '
+       }
+    }
+    setPhone(val)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,8 +48,10 @@ export function Step5CustomerForm() {
       return
     }
 
-    if (!name || !phone || !email) {
-      alert('Por favor completa todos los campos')
+    // Validate phone length (needs actual number after +54 9)
+    // +54 9 is 6 chars. We expect at least ~10 digits after.
+    if (!name || !phone || phone.length < 10) {
+      alert('Por favor completa todos los campos correctamente')
       return
     }
 
@@ -55,6 +73,9 @@ export function Step5CustomerForm() {
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')
         .substring(0, 32)
+      
+      // Sanitized phone for email generation
+      const cleanPhone = phone.replace(/\D/g, '')
 
       // Create appointment via API (bypasses RLS)
       const response = await fetch('/api/public/appointments', {
@@ -68,7 +89,8 @@ export function Step5CustomerForm() {
           end_time: endDate.toISOString(),
           customer_name: name,
           customer_phone: phone,
-          customer_email: email,
+          // Generate placeholder email as user requested removal of field
+          customer_email: `${cleanPhone}@whatsapp.placeholder`, 
           cancellation_token: cancellationToken,
         }),
       })
@@ -164,14 +186,14 @@ export function Step5CustomerForm() {
 
         <div className="group">
           <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 group-focus-within:text-white transition-colors">
-            Teléfono *
+            Teléfono (WhatsApp) *
           </label>
           <div className="relative">
             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-white transition-colors" />
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={handlePhoneChange}
               className="w-full h-14 bg-white/[0.02] border-b border-white/10 px-12 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 focus:bg-white/[0.04] transition-all rounded-t-lg"
               placeholder="+54 9 11 1234-5678"
               required
@@ -179,22 +201,7 @@ export function Step5CustomerForm() {
           </div>
         </div>
 
-        <div className="group">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 group-focus-within:text-white transition-colors">
-            Email *
-          </label>
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-white transition-colors" />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-14 bg-white/[0.02] border-b border-white/10 px-12 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 focus:bg-white/[0.04] transition-all rounded-t-lg"
-              placeholder="tu@email.com"
-              required
-            />
-          </div>
-        </div>
+        {/* Email field removed as per request */}
 
         {/* CAPTCHA */}
         <div className="flex justify-center py-4">
