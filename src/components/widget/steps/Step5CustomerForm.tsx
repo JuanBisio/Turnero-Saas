@@ -18,23 +18,21 @@ export function Step5CustomerForm() {
   const { state, dispatch } = useBooking()
   const { shopId } = useShop()
   const [name, setName] = useState(state.customerName)
-  // Initialize phone with +54 9 if empty
-  const [phone, setPhone] = useState(state.customerPhone || '+54 9 ')
+  // Initialize phone with +54 if empty
+  const [phone, setPhone] = useState(state.customerPhone || '+54 ')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const supabase = createClient()
 
-  // Ensure phone always starts with +54 9
+  // Ensure phone always starts with +54
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value
-    if (!val.startsWith('+54 9')) {
+    if (!val.startsWith('+54')) {
        // If user tries to delete the prefix, reset/prevent it
-       if (val.startsWith('+54 ')) {
-          val = '+54 9 ' + val.substring(4) // Keep space
-       } else if (val.startsWith('+54')) {
-          val = '+54 9 '
+       if (val.startsWith('+5')) {
+          val = '+54 ' + val.substring(2)
        } else {
-          val = '+54 9 '
+          val = '+54 '
        }
     }
     setPhone(val)
@@ -203,7 +201,7 @@ export function Step5CustomerForm() {
               value={phone}
               onChange={handlePhoneChange}
               className="w-full h-14 bg-white/[0.02] border-b border-white/10 px-12 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 focus:bg-white/[0.04] transition-all rounded-t-lg"
-              placeholder="+54 9 11 1234-5678"
+              placeholder="+54 358 1234567"
               required
             />
           </div>
