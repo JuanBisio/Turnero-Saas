@@ -145,7 +145,7 @@ export default function OnboardingPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-4 font-bold text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group border border-white/10"
+              className="w-full rounded-lg bg-white px-4 py-4 font-bold text-black shadow-lg shadow-white/10 hover:bg-zinc-200 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group"
             >
               {isPending ? (
                 <>
