@@ -68,7 +68,7 @@ export function DashboardContent({
   todayApts,
 }: DashboardContentProps) {
   return (
-    <div className="space-y-10 p-2">
+    <div className="space-y-10">
       <div>
         <h1 className="text-4xl font-bold font-heading text-white text-glow mb-2">Dashboard</h1>
         <p className="text-slate-400 text-lg">
