@@ -12,8 +12,19 @@ export default function OnboardingPage() {
   const [state, formAction, isPending] = useActionState(createShop, initialState)
   const [loading, setLoading] = useState(true)
   const [slug, setSlug] = useState('')
+  const [timezone, setTimezone] = useState('UTC')
   const router = useRouter()
   const supabase = createClient()
+
+  // Detect Timezone on Mount
+  useEffect(() => {
+    try {
+        const detectedZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+        if (detectedZone) setTimezone(detectedZone)
+    } catch (e) {
+        console.warn('Could not detect timezone', e)
+    }
+  }, [])
 
   // Initial Auth Check
   useEffect(() => {
@@ -112,6 +123,15 @@ export default function OnboardingPage() {
                {state.errors?.inviteCode && (
                 <p className="text-xs text-red-400 mt-2 ml-1 text-center font-bold">{state.errors.inviteCode[0]}</p>
               )}
+            </div>
+
+            {/* Timezone (Detected) */}
+            <input type="hidden" name="timezone" value={timezone} />
+            <div className="text-center">
+                 <p className="text-xs text-muted-foreground bg-white/5 inline-block px-3 py-1 rounded-full border border-white/5">
+                    🕛 Zona horaria detectada: <span className="text-primary font-medium">{timezone}</span>
+                 </p>
+                 {/* Fallback info in case detection is wrong (could make this editable in settings later) */}
             </div>
 
             {/* General Error */}

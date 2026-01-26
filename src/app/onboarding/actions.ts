@@ -65,6 +65,7 @@ export async function createShop(prevState: CreateShopState, formData: FormData)
       .insert({
         name,
         slug,
+        timezone: (formData.get('timezone') as string) || 'UTC',
         api_key_n8n: crypto.randomUUID(),
         public_key: crypto.randomUUID(),
         theme: { color: 'blue' }
