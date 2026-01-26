@@ -125,14 +125,37 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            {/* Timezone (Detected) */}
+            {/* Timezone (Detected & Erasable) */}
             <input type="hidden" name="timezone" value={timezone} />
-            <div className="text-center">
-                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-sm">
-                    <span className="text-xs text-zinc-400">Zona horaria detectada:</span>
-                    <span className="text-xs font-medium text-sky-300 font-mono tracking-wide">{timezone}</span>
+            <div className="flex flex-col items-center gap-2">
+                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-sm group hover:bg-white/10 transition-colors cursor-pointer" onClick={() => {
+                    const allZones = Intl.supportedValuesOf('timeZone')
+                    // Simple prompt/fallback for now, or cleaner UI replacement
+                    // Let's replace this badge with a select if they click it? 
+                    // For simplicity and effective UI, let's render the Select ALWAYS if the user wants to change it, 
+                    // or just render the select styled continuously but looking like a badge?
+                    // Let's go with the Toggle approach for cleaner UX.
+                 }}>
+                    <span className="text-xs text-zinc-400">Zona horaria:</span>
+                    <select 
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className="bg-transparent text-xs font-medium text-sky-300 font-mono tracking-wide focus:outline-none cursor-pointer appearance-none text-center"
+                      style={{ textAlignLast: 'center' }}
+                    >
+                      {/* Show current one at top if needed, or mapped list */}
+                      {Intl.supportedValuesOf('timeZone').map(tz => (
+                        <option key={tz} value={tz} className="text-black bg-white">
+                          {tz}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Tiny visual cue that it is editable */}
+                    <span className="text-[10px] text-white/20">▼</span>
                  </div>
-                 {/* Fallback info in case detection is wrong (could make this editable in settings later) */}
+                 <p className="text-[10px] text-muted-foreground/50">
+                    *Detectada automáticamente. Clic para cambiar.
+                 </p>
             </div>
 
             {/* General Error */}
