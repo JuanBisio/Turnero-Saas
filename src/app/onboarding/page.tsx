@@ -128,9 +128,10 @@ export default function OnboardingPage() {
             {/* Timezone (Detected) */}
             <input type="hidden" name="timezone" value={timezone} />
             <div className="text-center">
-                 <p className="text-xs text-muted-foreground bg-white/5 inline-block px-3 py-1 rounded-full border border-white/5">
-                    🕛 Zona horaria detectada: <span className="text-primary font-medium">{timezone}</span>
-                 </p>
+                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-sm">
+                    <span className="text-xs text-zinc-400">Zona horaria detectada:</span>
+                    <span className="text-xs font-medium text-sky-300 font-mono tracking-wide">{timezone}</span>
+                 </div>
                  {/* Fallback info in case detection is wrong (could make this editable in settings later) */}
             </div>
 
@@ -144,7 +145,7 @@ export default function OnboardingPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full rounded-lg bg-primary px-4 py-4 font-bold text-white shadow-lg shadow-blue-500/25 hover:bg-primary/90 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group"
+              className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-4 font-bold text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 group border border-white/10"
             >
               {isPending ? (
                 <>
