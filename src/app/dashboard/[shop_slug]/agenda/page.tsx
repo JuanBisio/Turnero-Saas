@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useShop } from '@/components/providers/ShopProvider'
 import { createClient } from '@/lib/supabase/client'
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, parseISO } from 'date-fns'
+import { format, addMonths, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, Lock, Clock } from 'lucide-react'
@@ -245,17 +245,19 @@ export default function AgendaPage() {
           <div className="glass-card-dark p-6">
             <div className="flex items-center justify-between mb-4">
               <button
-                onClick={() => setSelectedDate(addDays(selectedDate, -30))}
+                onClick={() => setSelectedDate(addMonths(startOfMonth(selectedDate), -1))}
                 className="p-2 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
+                title="Mes anterior"
               >
                 ←
               </button>
-              <h3 className="font-bold text-lg font-heading text-white">
+              <h3 className="font-bold text-lg font-heading text-white min-w-[140px] text-center">
                 {format(selectedDate, 'MMMM yyyy', { locale: es })}
               </h3>
               <button
-                onClick={() => setSelectedDate(addDays(selectedDate, 30))}
+                onClick={() => setSelectedDate(addMonths(startOfMonth(selectedDate), 1))}
                 className="p-2 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
+                title="Próximo mes"
               >
                 →
               </button>
