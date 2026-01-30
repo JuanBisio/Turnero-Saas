@@ -1,6 +1,6 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useParams } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { format, differenceInHours } from 'date-fns'
@@ -26,7 +26,7 @@ type Message = {
 
 export default function InboxPage() {
   const { shop_slug } = useParams()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   
   // State
   const [contacts, setContacts] = useState<Contact[]>([])
