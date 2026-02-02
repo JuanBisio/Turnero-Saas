@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { format, differenceInHours } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { Send, Clock, User, Phone } from 'lucide-react'
+import { Send, Clock, User, Phone, Pencil, Check, X } from 'lucide-react'
 
 // Types
 type Contact = {
@@ -37,6 +37,35 @@ export default function InboxPage() {
   const [shopId, setShopId] = useState<string | null>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Edit Name State
+  const [isEditingName, setIsEditingName] = useState(false)
+  const [editNameValue, setEditNameValue] = useState('')
+
+  async function handleUpdateName() {
+    if (!selectedContact || !editNameValue.trim()) return
+
+    const newName = editNameValue.trim()
+    
+    // Optmistic Update
+    const updatedContact = { ...selectedContact, name: newName }
+    setSelectedContact(updatedContact)
+    setContacts(prev => prev.map(c => c.id === selectedContact.id ? updatedContact : c))
+    setIsEditingName(false)
+
+    // DB Update
+    try {
+      const { error } = await supabase
+        .from('inbox_contacts')
+        .update({ name: newName })
+        .eq('id', selectedContact.id)
+
+      if (error) throw error
+    } catch (err) {
+      console.error('Failed to update name:', err)
+      alert('Error al actualizar nombre')
+    }
+  }
 
   // 1. Fetch Shop ID
   useEffect(() => {
@@ -140,8 +169,8 @@ export default function InboxPage() {
 
     // Connect to n8n Outbound Webhook
     try {
-      // PROD URL for 'bisiojuan.app.n8n.cloud' with path 'whatsapp-outbound'
-      const N8N_WEBHOOK_URL = 'https://bisiojuan.app.n8n.cloud/webhook/whatsapp-outbound'
+      // PROD URL for 'n8n.srv1323734.hstgr.cloud' with path 'whatsapp-outbound'
+      const N8N_WEBHOOK_URL = 'https://n8n.srv1323734.hstgr.cloud/webhook/whatsapp-outbound'
 
       await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
@@ -198,7 +227,11 @@ export default function InboxPage() {
               </div>
               <div className="flex-1 overflow-hidden">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold text-slate-200 truncate">{contact.name || contact.phone}</span>
+                  <span className="font-bold text-slate-200 truncate">
+                    {(!contact.name || contact.name === 'Unknown' || contact.name === 'Desconocido') 
+                      ? contact.phone 
+                      : contact.name}
+                  </span>
                   {contact.unread_count > 0 && (
                     <span className="bg-green-500 text-black text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                       {contact.unread_count}
@@ -228,7 +261,41 @@ export default function InboxPage() {
                     <User size={20} className="text-slate-300" />
                  </div>
                  <div>
-                    <h3 className="font-bold text-white">{selectedContact.name || 'Desconocido'}</h3>
+                    <div className="flex items-center gap-2">
+                       {isEditingName ? (
+                         <div className="flex items-center gap-1">
+                           <input 
+                             autoFocus
+                             className="bg-zinc-800 border border-purple-500 rounded px-2 py-1 text-sm text-white focus:outline-none"
+                             value={editNameValue}
+                             onChange={(e) => setEditNameValue(e.target.value)}
+                             onKeyDown={(e) => {
+                               if (e.key === 'Enter') handleUpdateName()
+                               if (e.key === 'Escape') setIsEditingName(false)
+                             }}
+                           />
+                           <button onClick={handleUpdateName} className="p-1 hover:bg-green-500/20 text-green-500 rounded"><Check size={14} /></button>
+                           <button onClick={() => setIsEditingName(false)} className="p-1 hover:bg-red-500/20 text-red-500 rounded"><X size={14} /></button>
+                         </div>
+                       ) : (
+                         <div className="flex items-center gap-2 group">
+                           <h3 className="font-bold text-white">
+                             {(!selectedContact.name || selectedContact.name === 'Unknown' || selectedContact.name === 'Desconocido') 
+                               ? selectedContact.phone 
+                               : selectedContact.name}
+                           </h3>
+                           <button 
+                             onClick={() => {
+                               setEditNameValue(selectedContact.name && selectedContact.name !== 'Unknown' && selectedContact.name !== 'Desconocido' ? selectedContact.name : '')
+                               setIsEditingName(true)
+                             }}
+                             className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-purple-400"
+                           >
+                             <Pencil size={12} />
+                           </button>
+                         </div>
+                       )}
+                    </div>
                     <div className="flex items-center gap-1 text-xs text-slate-400">
                       <Phone size={10} /> {selectedContact.phone}
                     </div>
