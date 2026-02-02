@@ -18,19 +18,27 @@ export default async function DashboardRootPage() {
 
   // 2. Fetch User's Shops
   // We join shop_users table to find shops linked to this user
-  const { data: memberships } = await supabase
+  // 2. Fetch User's Shops
+  // We split this into two steps to be safe against complex joins/RLS
+  const { data: updatedMemberships } = await supabase
     .from('shop_users')
-    .select('shop:shops(slug)')
+    .select('shop_id')
     .eq('user_id', user.id)
     .limit(1)
 
   // 3. Make Decision
-  if (memberships && memberships.length > 0) {
-    // User has a shop -> Redirect to first shop dashboard
-    // @ts-ignore
-    const slug = memberships[0].shop?.slug
-    if (slug) {
-      redirect(`/dashboard/${slug}`)
+  if (updatedMemberships && updatedMemberships.length > 0) {
+    const shopId = updatedMemberships[0].shop_id
+    
+    // Fetch shop details specifically
+    const { data: shop } = await supabase
+        .from('shops')
+        .select('slug')
+        .eq('id', shopId)
+        .single()
+    
+    if (shop?.slug) {
+      redirect(`/dashboard/${shop.slug}`)
     }
   }
 
