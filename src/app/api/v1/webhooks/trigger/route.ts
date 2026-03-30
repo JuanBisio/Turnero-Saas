@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
 
     const shop = appointment.shop
 
-    // ✅ Volvemos a void para evitar timeouts en DB Hooks de Supabase.
-    // Investigamos por qué no llega el mensaje con logs ruidosos.
-    void sendAppointmentConfirmation({
+    // ✅ Usamos await ahora que el error de RLS está resuelto.
+    // Esto garantiza que Vercel espere al envío y al log antes de cerrar.
+    await sendAppointmentConfirmation({
       appointmentId: appointment.id,
       clientName: appointment.customer_name,
       clientPhone: appointment.customer_phone,
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       professionalName: appointment.professional?.name ?? 'Profesional',
       datetime: appointment.start_time,
     }).catch(err =>
-      console.error('[route] Error de fondo en notificación WhatsApp:', err)
+      console.error('[route] Error en notificación WhatsApp:', err)
     )
 
     // Only send webhook if enabled

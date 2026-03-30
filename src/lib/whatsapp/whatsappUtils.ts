@@ -41,7 +41,13 @@ export function formatPhone(raw: string): string {
     )
   }
 
-  // 6. Agregar prefijo de Argentina
+  // 6. Si es un celular de Argentina (10 dígitos sin el 0 inicial), agregamos 549.
+  // Ejemplo: "1145678901" -> "5491145678901"
+  if (withoutLeadingZero.length === 10) {
+    return `549${withoutLeadingZero}`
+  }
+
+  // 7. Fallback: agregar solo el 54
   return `54${withoutLeadingZero}`
 }
 
