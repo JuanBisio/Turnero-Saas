@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
 
     const shop = appointment.shop
 
-    // ✅ Envío no-bloqueante de WhatsApp: si falla, no cancela la respuesta del webhook
-    void sendAppointmentConfirmation({
+    // ✅ Cambiamos void por await para garantizar ejecución en Vercel (Serverless)
+    await sendAppointmentConfirmation({
       appointmentId: appointment.id,
       clientName: appointment.customer_name,
       clientPhone: appointment.customer_phone,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       professionalName: appointment.professional?.name ?? 'Profesional',
       datetime: appointment.start_time,
     }).catch(err =>
-      console.error('[route] Error inesperado en notificación WhatsApp:', err)
+      console.error('[route] Error en notificación WhatsApp:', err)
     )
 
     // Only send webhook if enabled
