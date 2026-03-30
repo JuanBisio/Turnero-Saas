@@ -51,27 +51,33 @@ export async function sendTemplateMessage(
   payload: YCloudTemplateRequest,
   attempt = 1
 ): Promise<YCloudTemplateResponse> {
-  console.log(`[YCloud] Enviando mensaje a: ${payload.to} (intento ${attempt})`)
-  const url = `${ycloudConfig.baseUrl}/whatsapp/messages`
-
   const body = {
     from: payload.from ?? ycloudConfig.defaultSender,
     to: payload.to,
-    type: 'template',
+    type: "template",
     template: {
-      name: payload.template_name,
-      language: { code: 'es' },
+      name: payload.templateName,
+      language: {
+        code: payload.languageCode || "es_AR",
+        policy: "deterministic",
+      },
       components: [
         {
-          type: 'body',
-          parameters: Object.values(payload.parameters).map(value => ({
-            type: 'text',
+          type: "body",
+          parameters: Object.values(payload.parameters).map((value) => ({
+            type: "text",
             text: value,
           })),
         },
       ],
     },
-  }
+    wait_for_message_on_whatsapp: true,
+  };
+
+  console.log(
+    `[YCloud] Enviando mensaje DESDE: ${body.from} HACIA: ${body.to} (intento ${attempt})`
+  );
+  const url = `${ycloudConfig.baseUrl}/whatsapp/messages`
 
   try {
     const response = await fetch(url, {
