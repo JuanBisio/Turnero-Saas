@@ -10,7 +10,10 @@ import { formatInTimeZone } from 'date-fns-tz'
  * Generate webhook secret for a shop
  */
 export function generateWebhookSecret(shopId: string): string {
-  const masterSecret = process.env.WEBHOOK_MASTER_SECRET || 'default-secret-change-me'
+  const masterSecret = process.env.WEBHOOK_MASTER_SECRET
+  if (!masterSecret) {
+    throw new Error('WEBHOOK_MASTER_SECRET is not defined in environment variables')
+  }
   
   return crypto
     .createHash('sha256')
@@ -23,7 +26,10 @@ export function generateWebhookSecret(shopId: string): string {
  * Generate cancellation token for an appointment
  */
 export function generateCancellationToken(appointmentId: string): string {
-  const secret = process.env.CANCELLATION_SECRET || 'cancellation-secret-change-me'
+  const secret = process.env.CANCELLATION_SECRET
+  if (!secret) {
+     throw new Error('CANCELLATION_SECRET is not defined in environment variables')
+  }
   
   return crypto
     .createHash('sha256')
@@ -63,6 +69,7 @@ export function buildCreatedPayload(params: {
       name: shop.name,
       slug: shop.slug,
       timezone: timezone,
+      phone: shop.number_sender || shop.phone, // Failover to phone if number_sender is missing, but prioritize number_sender
     },
     appointment: {
       id: appointment.id,
@@ -112,6 +119,7 @@ export function buildCancelledPayload(params: {
       name: shop.name,
       slug: shop.slug,
       timezone: timezone,
+      phone: shop.number_sender || shop.phone,
     },
     appointment: {
       id: appointment.id,
@@ -152,6 +160,7 @@ export function buildTestPayload(shop: any): any {
       id: shop.id,
       name: shop.name,
       slug: shop.slug,
+      phone: shop.number_sender || shop.phone,
     },
     message: 'Este es un webhook de prueba desde Turnero SaaS',
   }

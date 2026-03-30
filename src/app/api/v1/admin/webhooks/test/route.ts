@@ -21,6 +21,31 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
+    // Verify User Session
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // Verify Permissions (Must be Owner or Admin)
+    const { data: membership, error: membershipError } = await supabase
+      .from('shop_users')
+      .select('role')
+      .eq('shop_id', shopId)
+      .eq('user_id', user.id)
+      .in('role', ['owner', 'admin'])
+      .single()
+
+    if (membershipError || !membership) {
+      return NextResponse.json(
+        { error: 'Forbidden: You must be an admin or owner to test webhooks' },
+        { status: 403 }
+      )
+    }
+
     // Get shop
     const { data: shop, error } = await supabase
       .from('shops')

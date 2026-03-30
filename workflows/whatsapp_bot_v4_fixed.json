@@ -1,0 +1,299 @@
+{
+  "name": "WhatsApp Bot v4 - Fixed Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-ai-incoming",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "id": "webhook-1",
+      "webhookId": "32d8fa6c-f071-4bd0-8ba6-50ea90b9187b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body || $json;\nlet sender = body?.whatsappInboundMessage?.from || body?.from || '';\nlet message = body?.whatsappInboundMessage?.text?.body || body?.text?.body;\n\nif (!message && body?.whatsappInboundMessage?.interactive) {\n  const interact = body.whatsappInboundMessage.interactive;\n  message = interact.list_reply?.id || interact.button_reply?.id || interact.list_reply?.title || interact.button_reply?.title;\n}\n\nmessage = message || 'Hola';\nlet name = body?.whatsappInboundMessage?.customerProfile?.name || 'Cliente';\n\nreturn {\n  sender: String(sender).trim(),\n  message: String(message).trim(),\n  name: String(name).trim(),\n  shop_slug: 'demo'\n};"
+      },
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "id": "extract-msg-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nyoodvdlrrkgibjbxmgj.supabase.co/rest/v1/rpc/get_shop_context",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"p_slug\": \"{{ $('Extract Message').item.json.shop_slug }}\", \"p_phone\": \"{{ $('Extract Message').item.json.sender }}\" }",
+        "options": {}
+      },
+      "name": "Get Shop Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [440, 0],
+      "id": "get-context-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nyoodvdlrrkgibjbxmgj.supabase.co/rest/v1/rpc/get_or_create_session",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"p_phone\": \"{{ $('Extract Message').item.json.sender }}\" }",
+        "options": {}
+      },
+      "name": "Get Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [660, 0],
+      "id": "get-session-1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================\n// HYBRID STATE MACHINE: AI Interpretation + Deterministic Flow\n// =====================================================\n\nconst msg = $('Extract Message').item.json;\nconst ctxRaw = $('Get Shop Context').item.json;\nconst ctx = Array.isArray(ctxRaw) ? ctxRaw[0] : ctxRaw;\nconst sessRaw = $('Get Session').item.json;\nconst sess = Array.isArray(sessRaw) ? sessRaw[0] : sessRaw;\n\nconst userMessage = msg.message;\nconst msgLower = userMessage.toLowerCase();\nconst sender = msg.sender;\nconst userName = msg.name;\nconst shopName = ctx?.shop_name || 'Peluquería';\nconst services = (ctx?.services || '').split(',').map(s => s.trim()).filter(Boolean);\nconst professionals = (ctx?.professionals || '').split(',').map(s => s.trim()).filter(Boolean);\n\nlet currentState = sess?.current_state || 'IDLE';\nlet intent = sess?.intent || null;\nlet service = sess?.service || null;\nlet professional = sess?.professional || null;\nlet preferredDate = sess?.preferred_date || null;\nlet preferredTime = sess?.preferred_time || null;\n\n// Get today's date\nconst today = new Date();\nconst pad = n => String(n).padStart(2, '0');\nconst todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;\n\n// =====================================================\n// STEP 1: Detect Intent\n// =====================================================\nif (!intent || currentState === 'IDLE') {\n  if (msgLower.includes('reservar') || msgLower.includes('turno') || msgLower.includes('agendar') || msgLower.includes('cita')) {\n    intent = 'BOOK';\n    currentState = 'AWAITING_SERVICE';\n  } else if (msgLower.includes('cancelar')) {\n    intent = 'CANCEL';\n  } else if (msgLower.includes('horario') || msgLower.includes('servicio') || msgLower.includes('precio') || msgLower.includes('info')) {\n    intent = 'INFO';\n  } else if (msgLower.includes('hola') || msgLower.includes('buenas') || msgLower.includes('buen dia') || msgLower.includes('buenos dias')) {\n    intent = 'GREET';\n  } else if (msgLower.includes('si') || msgLower.includes('dale') || msgLower.includes('ok') || msgLower.includes('sí')) {\n    // User confirmed - start booking\n    intent = 'BOOK';\n    currentState = 'AWAITING_SERVICE';\n  } else {\n    intent = 'UNKNOWN';\n  }\n}\n\n// =====================================================\n// STEP 2: Extract data from user message\n// =====================================================\n\n// Try to extract service\nif (currentState === 'AWAITING_SERVICE' && !service) {\n  for (const s of services) {\n    const sLower = s.toLowerCase().split('(')[0].trim();\n    if (userMessage === s || msgLower === s.toLowerCase() || (sLower && msgLower.includes(sLower))) {\n      service = s;\n      currentState = 'AWAITING_PROFESSIONAL';\n      break;\n    }\n  }\n}\n\n// Try to extract professional\nif (currentState === 'AWAITING_PROFESSIONAL' && !professional) {\n  for (const p of professionals) {\n    const pLower = p.toLowerCase();\n    const firstName = pLower.split(' ')[0];\n    if (userMessage === p || msgLower === pLower || (firstName && msgLower.includes(firstName))) {\n      professional = p;\n      currentState = 'AWAITING_DATE';\n      break;\n    }\n  }\n}\n\n// Try to extract date\nif (currentState === 'AWAITING_DATE' && !preferredDate) {\n  const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;\n  \n  if (msgLower.includes('hoy')) {\n    preferredDate = todayStr;\n    currentState = 'AWAITING_TIME';\n  } else if (msgLower.includes('mañana') || msgLower.includes('manana')) {\n    const tomorrow = new Date(today);\n    tomorrow.setDate(tomorrow.getDate() + 1);\n    preferredDate = iso(tomorrow);\n    currentState = 'AWAITING_TIME';\n  } else {\n    const dayMatch = msgLower.match(/(?:el|para|dia)\\s*(\\d{1,2})/);\n    if (dayMatch) {\n      const d = new Date();\n      d.setDate(Number(dayMatch[1]));\n      if (d < today) d.setMonth(d.getMonth() + 1);\n      preferredDate = iso(d);\n      currentState = 'AWAITING_TIME';\n    }\n    const fullDateMatch = msgLower.match(/(\\d{1,2})[\\/-](\\d{1,2})/);\n    if (!preferredDate && fullDateMatch) {\n      const d = new Date();\n      d.setDate(Number(fullDateMatch[1]));\n      d.setMonth(Number(fullDateMatch[2]) - 1);\n      if (d < today) d.setFullYear(d.getFullYear() + 1);\n      preferredDate = iso(d);\n      currentState = 'AWAITING_TIME';\n    }\n  }\n}\n\n// Try to extract time\nif (currentState === 'AWAITING_TIME' && !preferredTime) {\n  const timeMatch = userMessage.match(/^(\\d{1,2}):(\\d{2})/);\n  if (timeMatch) {\n    preferredTime = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}:00`;\n    currentState = 'READY_TO_BOOK';\n  }\n}\n\n// =====================================================\n// STEP 3: Determine response based on state\n// =====================================================\nlet action = 'REPLY';\nlet response = null;\nlet needsApiCall = null;\n\nif (intent === 'GREET') {\n  response = {\n    type: 'text',\n    text: { body: `¡Hola! 👋 Bienvenido a *${shopName}*. ¿Querés reservar un turno?` }\n  };\n  currentState = 'IDLE';\n  intent = null;\n\n} else if (intent === 'INFO') {\n  const serviceList = services.join(', ');\n  const profList = professionals.join(', ');\n  response = {\n    type: 'text',\n    text: { body: `ℹ️ *${shopName}*\\n\\n💇 *Servicios:* ${serviceList}\\n💈 *Profesionales:* ${profList}\\n\\n¿Querés reservar un turno?` }\n  };\n  currentState = 'IDLE';\n\n} else if (intent === 'BOOK' || (currentState && currentState.startsWith('AWAITING_'))) {\n  intent = 'BOOK';\n  \n  if (!service) {\n    const rows = services.slice(0, 10).map(s => ({ id: s, title: s.slice(0, 24), description: '' }));\n    response = {\n      type: 'interactive',\n      interactive: {\n        type: 'list',\n        header: { type: 'text', text: '💇 Nuestros Servicios' },\n        body: { text: '¡Claro! 😊 ¿Qué servicio te gustaría?' },\n        footer: { text: shopName },\n        action: { button: 'Ver Servicios', sections: [{ title: 'Servicios', rows: rows }] }\n      }\n    };\n    currentState = 'AWAITING_SERVICE';\n    \n  } else if (!professional) {\n    const rows = professionals.slice(0, 10).map(p => ({ id: p, title: p.slice(0, 24), description: '' }));\n    response = {\n      type: 'interactive',\n      interactive: {\n        type: 'list',\n        header: { type: 'text', text: '💈 Nuestros Profesionales' },\n        body: { text: `Elegiste: *${service}*\\n¿Con quién te gustaría atenderte?` },\n        footer: { text: shopName },\n        action: { button: 'Ver Profesionales', sections: [{ title: 'Profesionales', rows: rows }] }\n      }\n    };\n    currentState = 'AWAITING_PROFESSIONAL';\n    \n  } else if (!preferredDate) {\n    response = {\n      type: 'text',\n      text: { body: `Perfecto! *${service}* con *${professional}*. 📅\\n\\n¿Para qué fecha querés el turno?\\n\\nPodés decir: \"hoy\", \"mañana\", o una fecha como \"el 15\" o \"10/02\"` }\n    };\n    currentState = 'AWAITING_DATE';\n    \n  } else if (!preferredTime) {\n    action = 'FETCH_TIMES';\n    needsApiCall = 'checkAvailability';\n    currentState = 'AWAITING_TIME';\n    \n  } else {\n    action = 'BOOK_NOW';\n    needsApiCall = 'bookAppointment';\n  }\n\n} else if (intent === 'CANCEL') {\n  action = 'CANCEL_FLOW';\n  needsApiCall = 'checkAppointments';\n\n} else {\n  response = {\n    type: 'text',\n    text: { body: `¡Hola! 👋 Puedo ayudarte a:\\n\\n• *Reservar* un turno\\n• *Cancelar* un turno\\n• Ver *info* de servicios\\n\\n¿Qué te gustaría hacer?` }\n  };\n  currentState = 'IDLE';\n}\n\nreturn {\n  action: action,\n  response: response,\n  needsApiCall: needsApiCall,\n  sender: sender,\n  updateSession: {\n    current_state: currentState,\n    intent: intent || '',\n    service: service || '',\n    professional: professional || '',\n    preferred_date: preferredDate || '',\n    preferred_time: preferredTime || ''\n  },\n  context: {\n    sender: sender,\n    userName: userName,\n    shopName: shopName,\n    service: service,\n    professional: professional,\n    preferredDate: preferredDate,\n    preferredTime: preferredTime\n  }\n};"
+      },
+      "name": "State Machine",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "id": "state-machine-1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "id": "cond-reply", "leftValue": "={{ $json.action }}", "rightValue": "REPLY", "operator": { "type": "string", "operation": "equals" } },
+            { "id": "cond-times", "leftValue": "={{ $json.action }}", "rightValue": "FETCH_TIMES", "operator": { "type": "string", "operation": "equals" } },
+            { "id": "cond-book", "leftValue": "={{ $json.action }}", "rightValue": "BOOK_NOW", "operator": { "type": "string", "operation": "equals" } },
+            { "id": "cond-cancel", "leftValue": "={{ $json.action }}", "rightValue": "CANCEL_FLOW", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1100, 0],
+      "id": "route-action-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nyoodvdlrrkgibjbxmgj.supabase.co/rest/v1/rpc/get_available_slots",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"p_date\": \"{{ $('State Machine').item.json.context.preferredDate }}\", \"p_professional_name\": \"{{ $('State Machine').item.json.context.professional }}\" }",
+        "options": {}
+      },
+      "name": "Fetch Available Times",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1320, 100],
+      "id": "fetch-times-1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const slots = $json;\nconst context = $('State Machine').item.json.context;\nconst updateSession = $('State Machine').item.json.updateSession;\nconst sender = $('State Machine').item.json.sender;\nconst shopName = context.shopName;\nconst preferredDate = context.preferredDate;\n\nif (!slots || slots.length === 0 || slots.error) {\n  return {\n    sender: sender,\n    response: {\n      type: 'text',\n      text: { body: `😕 No hay horarios disponibles para el ${preferredDate} con ${context.professional}.\\n\\n¿Querés probar otra fecha?` }\n    },\n    updateSession: updateSession\n  };\n}\n\nconst rows = slots.slice(0, 10).map(slot => {\n  const time = slot.start_time ? slot.start_time.substring(11, 16) : String(slot);\n  return { id: time, title: time, description: '' };\n});\n\nconst dateParts = preferredDate.split('-');\nconst formattedDate = `${dateParts[2]}/${dateParts[1]}`;\n\nreturn {\n  sender: sender,\n  response: {\n    type: 'interactive',\n    interactive: {\n      type: 'list',\n      header: { type: 'text', text: '🕐 Horarios Disponibles' },\n      body: { text: `📅 *${formattedDate}* con *${context.professional}*\\n\\n¿A qué hora te viene bien?` },\n      footer: { text: shopName },\n      action: { button: 'Ver Horarios', sections: [{ title: 'Horarios', rows: rows }] }\n    }\n  },\n  updateSession: updateSession\n};"
+      },
+      "name": "Format Times Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 100],
+      "id": "format-times-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nyoodvdlrrkgibjbxmgj.supabase.co/rest/v1/rpc/book_appointment_by_name",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"p_customer_name\": \"{{ $('State Machine').item.json.context.userName }}\", \"p_customer_phone\": \"{{ $('State Machine').item.json.context.sender }}\", \"p_date\": \"{{ $('State Machine').item.json.context.preferredDate }}\", \"p_time\": \"{{ $('State Machine').item.json.context.preferredTime }}\", \"p_professional_name\": \"{{ $('State Machine').item.json.context.professional }}\" }",
+        "options": {}
+      },
+      "name": "Book Appointment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1320, 220],
+      "id": "book-apt-1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $json;\nconst context = $('State Machine').item.json.context;\nconst sender = $('State Machine').item.json.sender;\n\nif (result.success) {\n  const dateParts = context.preferredDate.split('-');\n  const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;\n  const formattedTime = context.preferredTime.substring(0, 5);\n  \n  return {\n    sender: sender,\n    response: {\n      type: 'text',\n      text: { body: `✅ *¡Reserva Confirmada!*\\n\\n💇 *Servicio:* ${context.service}\\n💈 *Profesional:* ${context.professional}\\n📅 *Fecha:* ${formattedDate} a las ${formattedTime}\\n\\n📍 *Lugar:* ${context.shopName}\\n\\n¡Te esperamos! 🎉` }\n    },\n    updateSession: { current_state: 'IDLE', intent: '', service: '', professional: '', preferred_date: '', preferred_time: '' }\n  };\n} else {\n  return {\n    sender: sender,\n    response: {\n      type: 'text',\n      text: { body: `❌ Hubo un problema con la reserva.\\n\\nError: ${result.error || 'Desconocido'}\\n\\n¿Querés intentar con otro horario?` }\n    },\n    updateSession: { current_state: 'AWAITING_TIME', intent: 'BOOK', service: context.service, professional: context.professional, preferred_date: context.preferredDate, preferred_time: '' }\n  };\n}"
+      },
+      "name": "Format Booking Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 220],
+      "id": "format-book-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nyoodvdlrrkgibjbxmgj.supabase.co/rest/v1/rpc/get_client_appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"p_phone\": \"{{ $('State Machine').item.json.sender }}\" }",
+        "options": {}
+      },
+      "name": "Fetch User Appointments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1320, 340],
+      "id": "fetch-apts-1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const appointments = $json;\nconst context = $('State Machine').item.json.context;\nconst sender = $('State Machine').item.json.sender;\n\nif (!appointments || appointments.length === 0 || appointments.error) {\n  return {\n    sender: sender,\n    response: {\n      type: 'text',\n      text: { body: `No tenés turnos pendientes. 😊\\n\\n¿Querés reservar uno nuevo?` }\n    },\n    updateSession: { current_state: 'IDLE', intent: '' }\n  };\n}\n\nconst rows = appointments.slice(0, 10).map(apt => {\n  const date = apt.start_time ? apt.start_time.substring(0, 10) : '';\n  const time = apt.start_time ? apt.start_time.substring(11, 16) : '';\n  const dateParts = date.split('-');\n  const shortDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}` : date;\n  \n  return {\n    id: apt.id,\n    title: `${shortDate} ${time}`.slice(0, 24),\n    description: `${apt.service_name || 'Servicio'}`\n  };\n});\n\nreturn {\n  sender: sender,\n  response: {\n    type: 'interactive',\n    interactive: {\n      type: 'list',\n      header: { type: 'text', text: '📋 Tus Turnos' },\n      body: { text: 'Seleccioná el turno que querés cancelar:' },\n      footer: { text: context.shopName },\n      action: { button: 'Ver Turnos', sections: [{ title: 'Turnos Pendientes', rows: rows }] }\n    }\n  },\n  updateSession: { current_state: 'AWAITING_CANCEL_SELECTION', intent: 'CANCEL' }\n};"
+      },
+      "name": "Format Appointments List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 340],
+      "id": "format-apts-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ycloud.com/v2/whatsapp/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "X-API-Key", "value": "d0eafac203bf8fe636a0294232f3930e"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $json.sender, \"from\": \"5493586548065\", \"type\": $json.response.type, [$json.response.type]: $json.response.interactive || $json.response.text } }}",
+        "options": {}
+      },
+      "name": "Send YCloud Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 0],
+      "id": "send-reply-1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nyoodvdlrrkgibjbxmgj.supabase.co/rest/v1/rpc/update_session",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im55b29kdmRscnJrZ2liamJ4bWdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4NzUzODEsImV4cCI6MjA4NDQ1MTM4MX0.N6IzR5cQYVMI9980wi7-yiUR3G4fQntuFiik4mXkFSY"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"p_phone\": \"{{ $json.sender }}\", \"p_current_state\": \"{{ $json.updateSession.current_state }}\", \"p_intent\": \"{{ $json.updateSession.intent }}\", \"p_service\": \"{{ $json.updateSession.service }}\", \"p_professional\": \"{{ $json.updateSession.professional }}\", \"p_preferred_date\": \"{{ $json.updateSession.preferred_date }}\", \"p_preferred_time\": \"{{ $json.updateSession.preferred_time }}\" }",
+        "options": {}
+      },
+      "name": "Update Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1980, 0],
+      "id": "update-session-1"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Extract Message", "type": "main", "index": 0}]]
+    },
+    "Extract Message": {
+      "main": [[{"node": "Get Shop Context", "type": "main", "index": 0}]]
+    },
+    "Get Shop Context": {
+      "main": [[{"node": "Get Session", "type": "main", "index": 0}]]
+    },
+    "Get Session": {
+      "main": [[{"node": "State Machine", "type": "main", "index": 0}]]
+    },
+    "State Machine": {
+      "main": [[{"node": "Route Action", "type": "main", "index": 0}]]
+    },
+    "Route Action": {
+      "main": [
+        [{"node": "Send YCloud Reply", "type": "main", "index": 0}],
+        [{"node": "Fetch Available Times", "type": "main", "index": 0}],
+        [{"node": "Book Appointment", "type": "main", "index": 0}],
+        [{"node": "Fetch User Appointments", "type": "main", "index": 0}]
+      ]
+    },
+    "Fetch Available Times": {
+      "main": [[{"node": "Format Times Response", "type": "main", "index": 0}]]
+    },
+    "Format Times Response": {
+      "main": [[{"node": "Send YCloud Reply", "type": "main", "index": 0}]]
+    },
+    "Book Appointment": {
+      "main": [[{"node": "Format Booking Response", "type": "main", "index": 0}]]
+    },
+    "Format Booking Response": {
+      "main": [[{"node": "Send YCloud Reply", "type": "main", "index": 0}]]
+    },
+    "Fetch User Appointments": {
+      "main": [[{"node": "Format Appointments List", "type": "main", "index": 0}]]
+    },
+    "Format Appointments List": {
+      "main": [[{"node": "Send YCloud Reply", "type": "main", "index": 0}]]
+    },
+    "Send YCloud Reply": {
+      "main": [[{"node": "Update Session", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "v4-fixed"
+  }
+}

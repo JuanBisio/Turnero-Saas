@@ -1,0 +1,116 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ycloud.com/v2/whatsapp/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "d0eafac203bf8fe636a0294232f3930e"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.recipient }}\",\n  \"from\": \"{{ $json.sender }}\",\n  \"type\": \"template\",\n  \"template\": {\n    \"name\": \"confirmacion_turno\",\n    \"language\": { \"code\": \"es_AR\" },\n    \"components\": [\n      {\n        \"type\": \"body\",\n        \"parameters\": [\n          { \"type\": \"text\", \"text\": \"{{ $json.p1_name }}\" },\n          { \"type\": \"text\", \"text\": \"{{ $json.p2_date }}\" },\n          { \"type\": \"text\", \"text\": \"{{ $json.p3_time }}\" },\n          { \"type\": \"text\", \"text\": \"{{ $json.p4_service }}\" },\n          { \"type\": \"text\", \"text\": \"{{ $json.p5_prof }}\" }\n        ]\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "b3c7d7aa-66a5-4fe9-a7c7-3c7dbcc67cfd",
+      "name": "Send WhatsApp - YCloud",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let phone = $input.item.json.phone;\nlet shop_sender = $input.item.json.shop_sender;\nlet name = $input.item.json.name;\nlet service = $input.item.json.service;\nlet professional = $input.item.json.professional;\nlet datetime = $input.item.json.datetime;\n\nif (!phone) {\n  return [];\n}\n\n// 1. Limpieza del teléfono del cliente\nconst cleaningRegex = /[^\\d]/g;\nlet cleanPhone = phone.toString().replace(cleaningRegex, '');\nif (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.substring(1);\nif (!cleanPhone.startsWith('54')) cleanPhone = '54' + cleanPhone;\n\n// 2. Limpieza del Sender (Shop)\nlet cleanSender = '5493586548065'; // Fallback default\n\nif (shop_sender) {\n  // Quitamos caracteres no numéricos\n  let tempSender = shop_sender.toString().replace(cleaningRegex, '');\n  if (tempSender.length > 5) {\n     cleanSender = tempSender;\n  }\n}\n\n// 3. Formato Fecha\nlet formattedDate = '';\nlet formattedTime = '';\nif (datetime) {\n  const separator = datetime.includes('T') ? 'T' : ' ';\n  const [datePart, timePart] = datetime.split(separator);\n  if (datePart) {\n    const [year, month, day] = datePart.split('-');\n    formattedDate = `${day}/${month}/${year}`;\n  }\n  if (timePart) {\n    formattedTime = timePart.substring(0, 5);\n  }\n}\n\n// 4. Salida\nreturn {\n  json: {\n    sender: cleanSender,\n    recipient: cleanPhone,\n    p1_name: name || 'Cliente',\n    p2_date: formattedDate,\n    p3_time: formattedTime,\n    p4_service: service || 'Servicio',\n    p5_prof: professional || 'Profesional'\n  }\n};"
+      },
+      "id": "5bce687f-8a17-4a7f-97bb-bf7b87efc084",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.body.customer?.phone || $json.body.customer_phone }}",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $json.body.customer?.name || $json.body.customer_name }}",
+              "type": "string"
+            },
+            {
+              "id": "service",
+              "name": "service",
+              "value": "={{ $json.body.service?.name || $json.body.service_name }}",
+              "type": "string"
+            },
+            {
+              "id": "professional",
+              "name": "professional",
+              "value": "={{ $json.body.professional?.name || $json.body.professional_name }}",
+              "type": "string"
+            },
+            {
+              "id": "datetime",
+              "name": "datetime",
+              "value": "={{ $json.body.appointment?.start_time || $json.body.start_time }}",
+              "type": "string"
+            },
+            {
+              "id": "shop_sender",
+              "name": "shop_sender",
+              "value": "={{ $json.body.shop?.phone || $json.body.shop_number_sender || $json.body.verified_sender_number }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "848a250c-bb30-4e8f-9617-1abc355bc1ce",
+      "name": "Extract Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointment-created",
+        "options": {}
+      },
+      "id": "eb5be3eb-2d5b-4246-9386-287d19d7b5b6",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    }
+  ]
+}

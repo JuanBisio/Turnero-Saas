@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,8 +32,24 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use service role key to bypass RLS
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    // Use ANON key to enforce RLS policies (instead of Service Role)
+    const supabase = createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+
+    // Defense in Depth: Validate that the service actually belongs to the shop
+    // This prevents IDOR where a user books a service from shop A into shop B's calendar
+    const { data: serviceData, error: serviceCheckError } = await supabase
+      .from('services')
+      .select('shop_id')
+      .eq('id', service_id)
+      .single()
+
+    if (serviceCheckError || !serviceData) {
+       return NextResponse.json({ error: 'Invalid service' }, { status: 400 })
+    }
+
+    if (serviceData.shop_id !== shop_id) {
+       return NextResponse.json({ error: 'Service does not match shop' }, { status: 400 })
+    }
 
     // Generate fallback email if missing (since it's removed from UI)
     const emailToSave = customer_email || `${customer_phone.replace(/\D/g, '')}@no-email.placeholder`
@@ -59,7 +75,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating appointment:', error)
       return NextResponse.json(
-        { error: error.message },
+        { error: 'Appointment creation failed. Check permissions.' },
         { status: 500 }
       )
     }

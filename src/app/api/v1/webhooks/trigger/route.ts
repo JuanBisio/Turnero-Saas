@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateWebhookSecret, buildCreatedPayload, sendWebhook } from '@/lib/webhooks/webhookUtils'
 import { logWebhook } from '@/lib/webhooks/logWebhook'
+import { sendAppointmentConfirmation } from '@/lib/whatsapp/notificationService'
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +37,18 @@ export async function POST(request: NextRequest) {
     }
 
     const shop = appointment.shop
+
+    // ✅ Envío no-bloqueante de WhatsApp: si falla, no cancela la respuesta del webhook
+    void sendAppointmentConfirmation({
+      appointmentId: appointment.id,
+      clientName: appointment.customer_name,
+      clientPhone: appointment.customer_phone,
+      serviceName: appointment.service?.name ?? 'Servicio',
+      professionalName: appointment.professional?.name ?? 'Profesional',
+      datetime: appointment.start_time,
+    }).catch(err =>
+      console.error('[route] Error inesperado en notificación WhatsApp:', err)
+    )
 
     // Only send webhook if enabled
     if (!shop.webhook_enabled || !shop.webhook_url) {
