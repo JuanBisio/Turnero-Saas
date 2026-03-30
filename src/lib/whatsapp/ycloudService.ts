@@ -56,9 +56,9 @@ export async function sendTemplateMessage(
     to: payload.to,
     type: "template",
     template: {
-      name: payload.templateName,
+      name: payload.template_name,
       language: {
-        code: payload.languageCode || "es_AR",
+        code: "es_AR",
         policy: "deterministic",
       },
       components: [
