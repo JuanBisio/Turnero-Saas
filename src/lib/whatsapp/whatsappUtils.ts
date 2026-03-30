@@ -25,7 +25,17 @@ export function formatPhone(raw: string): string {
     return digits
   }
 
-  // 3. Ya tiene código de país 54 pero sin 9 (ej: "541145678901") — devolver tal cual
+  // 3. Ya completo con 54 pero sin el 9 (ej: "54358...").
+  // Si tiene exactamente 12 dígitos y empieza con 54 (pero no 549), le insertamos el 9.
+  if (
+    digits.startsWith("54") &&
+    digits.length === 12 &&
+    !digits.startsWith("549")
+  ) {
+    return `549${digits.slice(2)}`;
+  }
+
+  // 4. Ya tiene código de país 54 pero sin 9 (ej: "541145678901") — devolver tal cual
   if (digits.startsWith('54') && digits.length >= 11) {
     return digits
   }
