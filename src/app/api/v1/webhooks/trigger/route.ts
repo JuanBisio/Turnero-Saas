@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
 
     const shop = appointment.shop
 
-    // ✅ Cambiamos void por await para garantizar ejecución en Vercel (Serverless)
-    await sendAppointmentConfirmation({
+    // ✅ Volvemos a void para evitar timeouts en DB Hooks de Supabase.
+    // Investigamos por qué no llega el mensaje con logs ruidosos.
+    void sendAppointmentConfirmation({
       appointmentId: appointment.id,
       clientName: appointment.customer_name,
       clientPhone: appointment.customer_phone,
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       professionalName: appointment.professional?.name ?? 'Profesional',
       datetime: appointment.start_time,
     }).catch(err =>
-      console.error('[route] Error en notificación WhatsApp:', err)
+      console.error('[route] Error de fondo en notificación WhatsApp:', err)
     )
 
     // Only send webhook if enabled

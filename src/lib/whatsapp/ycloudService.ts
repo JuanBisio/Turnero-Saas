@@ -51,6 +51,7 @@ export async function sendTemplateMessage(
   payload: YCloudTemplateRequest,
   attempt = 1
 ): Promise<YCloudTemplateResponse> {
+  console.log(`[YCloud] Enviando mensaje a: ${payload.to} (intento ${attempt})`)
   const url = `${ycloudConfig.baseUrl}/whatsapp/messages`
 
   const body = {

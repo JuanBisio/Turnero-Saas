@@ -48,6 +48,7 @@ function createAdminClient() {
 export async function sendAppointmentConfirmation(
   payload: AppointmentNotificationPayload
 ): Promise<void> {
+  console.log(`[Notifications] Inicia proceso para turno: ${payload.appointmentId}`)
   let status: NotificationStatus = 'failed'
   let errorMessage: string | null = null
 
