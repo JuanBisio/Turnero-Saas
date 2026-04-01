@@ -64,9 +64,9 @@ export async function sendAppointmentConfirmation(
       from: payload.shopSender,
       parameters: {
         p1_name: payload.clientName,
-        p2_service: payload.serviceName,
-        p3_date: date,
-        p4_time: time,
+        p2_date: date,
+        p3_time: time,
+        p4_service: payload.serviceName,
         p5_prof: payload.professionalName,
       },
     })

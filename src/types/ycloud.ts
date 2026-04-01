@@ -15,9 +15,9 @@ export interface YCloudTemplateRequest {
   /** Parámetros posicionales del cuerpo del template */
   parameters: {
     p1_name: string;    // Nombre del cliente
-    p2_service: string; // Nombre del servicio
-    p3_date: string;    // Fecha formateada: "DD/MM/YYYY"
-    p4_time: string;    // Hora formateada: "HH:mm"
+    p2_date: string;    // Fecha formateada: "DD/MM/YYYY"
+    p3_time: string;    // Hora formateada: "HH:mm"
+    p4_service: string; // Nombre del servicio
     p5_prof: string;    // Nombre del profesional
   };
   /** Número remitente verificado en YCloud. Si no se provee, usa YCLOUD_DEFAULT_SENDER. */

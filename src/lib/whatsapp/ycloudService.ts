@@ -52,6 +52,7 @@ export async function sendTemplateMessage(
   attempt = 1
 ): Promise<YCloudTemplateResponse> {
   const body = {
+    messaging_product: "whatsapp",
     from: payload.from ?? ycloudConfig.defaultSender,
     to: payload.to,
     type: "template",
@@ -59,7 +60,6 @@ export async function sendTemplateMessage(
       name: payload.template_name,
       language: {
         code: "es_AR",
-        policy: "deterministic",
       },
       components: [
         {
@@ -71,7 +71,6 @@ export async function sendTemplateMessage(
         },
       ],
     },
-    wait_for_message_on_whatsapp: true,
   };
 
   console.log(
