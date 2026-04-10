@@ -1,4 +1,4 @@
-import { StateMachineInput, StateMachineOutput, WhatsappSession } from "@/types/whatsapp-session";
+import { StateMachineInput, StateMachineOutput } from "@/types/whatsapp-session";
 import { YCloudOutboundMessage } from "@/types/ycloud";
 import { buildTextMessage } from "./ycloudClient";
 
@@ -150,8 +150,6 @@ function buildListMessage(to: string, header: string, body: string, footer: stri
 
 function buildDateListMessage(to: string, body: string, footer: string, todayDate: string): YCloudOutboundMessage {
   const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-  
   const today = new Date(todayDate);
   const rows = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
