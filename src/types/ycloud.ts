@@ -1,67 +1,101 @@
-/**
- * Contratos de la API de YCloud para el envío de mensajes de WhatsApp.
- * Referencia: https://docs.ycloud.com/reference/whatsapp-messages
- */
+// ── Inbound (YCloud → nuestro servidor) ──────────────────────────────────────
 
-/**
- * Cuerpo del request enviado a YCloud para un mensaje de template.
- * El template `confirmacion_turno` requiere exactamente los 5 parámetros definidos.
- */
-export interface YCloudTemplateRequest {
-  /** Número destino en formato internacional: "5491XXXXXXXXX" (sin + ni espacios) */
+export interface YCloudInboundEvent {
+  id: string;
+  type: "whatsapp.inbound_message.received";
+  apiVersion: "v2";
+  createTime: string;
+  whatsappInboundMessage: YCloudInboundMessage;
+}
+
+export interface YCloudInboundMessage {
+  id: string;
+  wamid: string;
+  wabaId: string;
+  from: string;                              // "+5493584014857"
   to: string;
-  /** Nombre del template aprobado en YCloud */
-  template_name: 'confirmacion_turno';
-  /** Parámetros posicionales del cuerpo del template */
-  parameters: {
-    p1_name: string;    // Nombre del cliente
-    p2_date: string;    // Fecha formateada: "DD/MM/YYYY"
-    p3_time: string;    // Hora formateada: "HH:mm"
-    p4_service: string; // Nombre del servicio
-    p5_prof: string;    // Nombre del profesional
+  sendTime: string;
+  type: "text" | "interactive" | "image" | "audio" | "document";
+  text?: { body: string };
+  interactive?: {
+    type: "list_reply" | "button_reply";
+    list_reply?: { id: string; title: string };
+    button_reply?: { id: string; title: string };
   };
-  /** Número remitente verificado en YCloud. Si no se provee, usa YCLOUD_DEFAULT_SENDER. */
+  customerProfile?: { name: string };
+}
+
+// ── Outbound (nuestro servidor → YCloud) ─────────────────────────────────────
+
+export interface YCloudTextMessage {
+  messaging_product: "whatsapp";
+  to: string;
+  from: string;
+  type: "text";
+  text: { body: string };
+}
+
+export interface YCloudInteractiveMessage {
+  messaging_product: "whatsapp";
+  to: string;
+  from: string;
+  type: "interactive";
+  interactive: YCloudInteractivePayload;
+}
+
+export type YCloudInteractivePayload =
+  | YCloudListMessage
+  | YCloudButtonMessage;
+
+export interface YCloudListMessage {
+  type: "list";
+  header: { type: "text"; text: string };
+  body: { text: string };
+  footer: { text: string };
+  action: {
+    button: string;
+    sections: Array<{
+      title: string;
+      rows: Array<{ id: string; title: string; description: string }>;
+    }>;
+  };
+}
+
+export interface YCloudButtonMessage {
+  type: "button";
+  body: { text: string };
+  action: {
+    buttons: Array<{ type: "reply"; reply: { id: string; title: string } }>;
+  };
+}
+
+// Template messages (para confirmaciones de turno)
+export interface YCloudTemplateRequest {
+  to: string;
+  template_name: string;
+  parameters: Record<string, string>;
   from?: string;
 }
 
-/**
- * Respuesta de la API de YCloud tras enviar un mensaje.
- */
 export interface YCloudTemplateResponse {
-  /** ID único del mensaje asignado por YCloud */
   id: string;
-  /** Estado del mensaje al momento de la respuesta */
-  status: 'submitted' | 'sent' | 'failed';
-  /** Presente solo cuando status === 'failed' */
+  status: "submitted" | "sent" | "failed";
   error?: {
     code: string;
     message: string;
   };
 }
 
-/**
- * Payload interno que fluye entre capas de la aplicación.
- * Este tipo es la única interfaz pública del módulo de notificaciones.
- */
 export interface AppointmentNotificationPayload {
-  /** ID del turno — usado para logging y trazabilidad */
   appointmentId: string;
-  /** Nombre completo del cliente */
-  clientName: string;
-  /** Teléfono del cliente (cualquier formato argentino válido) */
   clientPhone: string;
-  /** Nombre del servicio agendado */
-  serviceName: string;
-  /** Nombre del profesional asignado */
-  professionalName: string;
-  /**
-   * Fecha y hora del turno en ISO 8601.
-   * Ejemplo: "2025-01-15T14:30:00"
-   */
+  clientName: string;
   datetime: string;
-  /**
-   * Override del número remitente para este envío.
-   * Si no se provee, se usa YCLOUD_DEFAULT_SENDER.
-   */
-  shopSender?: string;
+  serviceName: string;
+  professionalName: string;
+  shopSender?: string; // Opcional: usa YCLOUD_DEFAULT_SENDER si no se provee
 }
+
+export type YCloudOutboundMessage = 
+  | YCloudTextMessage 
+  | YCloudInteractiveMessage;

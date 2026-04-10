@@ -247,17 +247,8 @@ async function checkAndCompleteAppointments(supabase: any, shopId: string) {
     .from('appointments')
     .update({ status: 'completado' })
     .eq('shop_id', shopId)
-    .eq('status', 'confirmed') // DB uses English enum or user defined? Usually 'confirmed' or 'confirmado'. Checking Schema...
-                               // User's schema function uses 'confirmed' in INSERT.
+    .in('status', ['pendiente', 'confirmado'])
     .lt('end_time', nowISO)
-
-  // Double check if we need to support 'confirmado' as well (due to mixed language use)
-  await supabase
-      .from('appointments')
-      .update({ status: 'completado' })
-      .eq('shop_id', shopId)
-      .eq('status', 'confirmado') 
-      .lt('end_time', nowISO)
 
   if (error) {
     console.error("Error auto-completing appointments:", error)

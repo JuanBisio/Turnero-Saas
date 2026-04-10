@@ -33,14 +33,14 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get session
+  // Verificar usuario autenticado contra el servidor (no confiar solo en cookies)
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // Protect dashboard routes
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    if (!session) {
+    if (!user) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
   }
@@ -48,7 +48,7 @@ export async function middleware(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   if (
     (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') &&
-    session
+    user
   ) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }

@@ -8,22 +8,15 @@ import { redirect } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
 /**
- * Get current session (returns null if not authenticated)
- */
-export async function getSession() {
-  const supabase = await createClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  return session
-}
-
-/**
- * Get current user (returns null if not authenticated)
+ * Get current user authenticated against the Supabase Auth server.
+ * Uses getUser() (not getSession()) to avoid trusting unverified cookie data.
  */
 export async function getUser(): Promise<User | null> {
-  const session = await getSession()
-  return session?.user ?? null
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  return user ?? null
 }
 
 /**
