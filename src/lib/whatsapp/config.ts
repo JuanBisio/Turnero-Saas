@@ -1,24 +1,10 @@
 /**
  * Configuración del cliente de YCloud.
- * Las variables de entorno se validan al cargar el módulo.
- * Si faltan, el proceso falla rápido en startup (fail-fast).
+ * En modo multi-tenant, cada shop usa sus propias credenciales desde DB.
+ * Las variables de entorno actúan solo como fallback para el shop "demo".
  */
-
-const apiKey = process.env.YCLOUD_API_KEY
-const defaultSender = process.env.YCLOUD_DEFAULT_SENDER
-
-if (!apiKey || !defaultSender) {
-  throw new Error(
-    '[YCloud] Variables de entorno requeridas no configuradas. ' +
-    'Verificá que YCLOUD_API_KEY y YCLOUD_DEFAULT_SENDER estén definidas en .env.local'
-  )
-}
-
 export const ycloudConfig = {
-  /** API Key de autenticación para YCloud */
-  apiKey,
-  /** Número de WhatsApp remitente verificado en YCloud (formato: 549XXXXXXXXXX) */
-  defaultSender,
-  /** URL base de la API de YCloud v2 */
-  baseUrl: 'https://api.ycloud.com/v2',
-} as const
+  apiKey:        process.env.YCLOUD_API_KEY        ?? "",
+  defaultSender: process.env.YCLOUD_DEFAULT_SENDER ?? "",
+  baseUrl:       "https://api.ycloud.com/v2",
+} as const;
