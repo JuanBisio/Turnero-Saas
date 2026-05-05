@@ -7,11 +7,12 @@ const YCLOUD_BASE = "https://api.ycloud.com/v2";
  * Soporta Text e Interactive (listas/botones).
  */
 export async function sendWhatsAppMessage(
-  payload: YCloudOutboundMessage
+  payload: YCloudOutboundMessage,
+  apiKey?: string
 ): Promise<{ id: string; status: string }> {
-  
-  const apiKey = process.env.YCLOUD_API_KEY;
-  if (!apiKey) {
+
+  const key = apiKey ?? process.env.YCLOUD_API_KEY;
+  if (!key) {
     throw new Error("[YCloud] YCLOUD_API_KEY no configurada.");
   }
 
@@ -19,10 +20,9 @@ export async function sendWhatsAppMessage(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-API-Key": apiKey,
+      "X-API-Key": key,
     },
     body: JSON.stringify(payload),
-    // Signal para evitar requests eternos (Next.js 15+ compatible)
     signal: AbortSignal.timeout(15_000),
   });
 
