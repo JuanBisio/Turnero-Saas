@@ -10,7 +10,7 @@ import { useShop } from '@/components/providers/ShopProvider'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ConfiguracionPage() {
-  const { shopId, shopData, refetchShop } = useShop()
+  const { shopId, shopSlug, shopData, refetchShop } = useShop()
   const [webhookUrl, setWebhookUrl] = useState('')
   const [webhookEnabled, setWebhookEnabled] = useState(false)
   const [webhookSecret, setWebhookSecret] = useState('')
@@ -18,14 +18,25 @@ export default function ConfiguracionPage() {
   const [testLoading, setTestLoading] = useState(false)
   const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   const [webhookLogs, setWebhookLogs] = useState<any[]>([])
+
+  // WhatsApp / YCloud
+  const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [ycloudApiKey, setYcloudApiKey] = useState('')
+  const [ycloudWebhookSecret, setYcloudWebhookSecret] = useState('')
+  const [whatsappLoading, setWhatsappLoading] = useState(false)
+  const [whatsappMessage, setWhatsappMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
+  const [copied, setCopied] = useState(false)
+
   const supabase = createClient()
 
   useEffect(() => {
     if (shopData) {
       setWebhookUrl(shopData.webhook_url || '')
       setWebhookEnabled(shopData.webhook_enabled || false)
-      
-      // Generate webhook secret for display
+      setWhatsappNumber(shopData.whatsapp_number || '')
+      setYcloudApiKey(shopData.ycloud_api_key || '')
+      setYcloudWebhookSecret(shopData.ycloud_webhook_secret || '')
+
       if (shopId) {
         const secret = generateWebhookSecretClient(shopId)
         setWebhookSecret(secret)
@@ -81,6 +92,38 @@ export default function ConfiguracionPage() {
       setMessage({ type: 'success', text: 'Configuración guardada exitosamente' })
       refetchShop()
     }
+  }
+
+  async function handleSaveWhatsApp() {
+    if (!shopId) return
+
+    setWhatsappLoading(true)
+    setWhatsappMessage(null)
+
+    const { error } = await supabase
+      .from('shops')
+      .update({
+        whatsapp_number:      whatsappNumber || null,
+        ycloud_api_key:       ycloudApiKey || null,
+        ycloud_webhook_secret: ycloudWebhookSecret || null,
+      })
+      .eq('id', shopId)
+
+    setWhatsappLoading(false)
+
+    if (error) {
+      setWhatsappMessage({ type: 'error', text: 'Error al guardar configuración de WhatsApp' })
+    } else {
+      setWhatsappMessage({ type: 'success', text: 'Configuración de WhatsApp guardada' })
+      refetchShop()
+    }
+  }
+
+  function copyWebhookUrl() {
+    const url = `https://turnero-saas.vercel.app/api/v1/whatsapp/inbound/${shopSlug}`
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleTestWebhook() {
@@ -240,6 +283,131 @@ export default function ConfiguracionPage() {
               {testLoading ? 'Enviando...' : 'Enviar Prueba'}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* WhatsApp / YCloud */}
+      <div className="rounded-lg border bg-card">
+        <div className="border-b p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-semibold">WhatsApp con YCloud</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Conectá tu número de WhatsApp para enviar confirmaciones automáticas
+              </p>
+            </div>
+            {shopData?.whatsapp_number && shopData?.ycloud_api_key ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-3 py-1 text-xs font-medium text-green-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                Conectado
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                No configurado
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Webhook URL — solo lectura */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              URL del Webhook (configurar en YCloud)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={`https://turnero-saas.vercel.app/api/v1/whatsapp/inbound/${shopSlug}`}
+                readOnly
+                className="flex-1 rounded-lg border bg-muted px-4 py-2 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={copyWebhookUrl}
+                className="rounded-lg border px-4 py-2 hover:bg-accent text-sm"
+              >
+                {copied ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Pegá esta URL en YCloud → Webhooks → Add Endpoint
+            </p>
+          </div>
+
+          {/* Número de WhatsApp */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Número de WhatsApp
+            </label>
+            <input
+              type="text"
+              placeholder="5493513149693"
+              value={whatsappNumber}
+              onChange={(e) => setWhatsappNumber(e.target.value)}
+              className="w-full rounded-lg border bg-background px-4 py-2 font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Formato internacional sin <code className="bg-muted px-1 rounded">+</code>. Para Argentina agregá el 9: <code className="bg-muted px-1 rounded">549 + código de área + número</code>
+            </p>
+          </div>
+
+          {/* YCloud API Key */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              API Key de YCloud
+            </label>
+            <input
+              type="password"
+              placeholder="yk_live_..."
+              value={ycloudApiKey}
+              onChange={(e) => setYcloudApiKey(e.target.value)}
+              className="w-full rounded-lg border bg-background px-4 py-2 font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Encontrala en YCloud → API Keys
+            </p>
+          </div>
+
+          {/* YCloud Webhook Secret */}
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Webhook Secret de YCloud
+            </label>
+            <input
+              type="password"
+              placeholder="whsec_..."
+              value={ycloudWebhookSecret}
+              onChange={(e) => setYcloudWebhookSecret(e.target.value)}
+              className="w-full rounded-lg border bg-background px-4 py-2 font-mono text-sm"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Encontralo en YCloud → Webhooks → Signing Secret del endpoint
+            </p>
+          </div>
+
+          {/* Feedback */}
+          {whatsappMessage && (
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                whatsappMessage.type === 'success'
+                  ? 'bg-accent/20 text-accent-foreground'
+                  : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              {whatsappMessage.text}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSaveWhatsApp}
+            disabled={whatsappLoading}
+            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {whatsappLoading ? 'Guardando...' : 'Guardar configuración de WhatsApp'}
+          </button>
         </div>
       </div>
 
