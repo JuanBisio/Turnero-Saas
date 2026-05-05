@@ -16,13 +16,16 @@ export async function sendWhatsAppMessage(
     throw new Error("[YCloud] YCLOUD_API_KEY no configurada.");
   }
 
+  // YCloud requiere el from sin el prefijo +
+  const normalizedPayload = { ...payload, from: payload.from.replace(/^\+/, "") };
+
   const response = await fetch(`${YCLOUD_BASE}/whatsapp/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-API-Key": key,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(normalizedPayload),
     signal: AbortSignal.timeout(15_000),
   });
 

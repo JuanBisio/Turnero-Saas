@@ -52,9 +52,10 @@ export async function sendTemplateMessage(
   shopApiKey?: string,
   attempt = 1
 ): Promise<YCloudTemplateResponse> {
+  const rawFrom = payload.from ?? ycloudConfig.defaultSender;
   const body = {
     messaging_product: "whatsapp",
-    from: payload.from ?? ycloudConfig.defaultSender,
+    from: rawFrom.replace(/^\+/, ""),   // YCloud no acepta + en el from
     to: payload.to,
     type: "template",
     template: {
