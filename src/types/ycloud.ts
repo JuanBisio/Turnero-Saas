@@ -93,7 +93,10 @@ export interface AppointmentNotificationPayload {
   datetime: string;
   serviceName: string;
   professionalName: string;
-  shopSender?: string; // Opcional: usa YCLOUD_DEFAULT_SENDER si no se provee
+  shopName: string;       // {{2}} "Tu turno en {{2}}"
+  shopLocation?: string;  // {{7}} Ubicación; fallback a shopName si no está
+  shopSender?: string;    // Número WhatsApp del negocio (from)
+  shopApiKey?: string;    // API Key de YCloud del negocio
 }
 
 export type YCloudOutboundMessage = 

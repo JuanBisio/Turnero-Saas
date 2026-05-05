@@ -49,6 +49,7 @@ function sleep(ms: number): Promise<void> {
  */
 export async function sendTemplateMessage(
   payload: YCloudTemplateRequest,
+  shopApiKey?: string,
   attempt = 1
 ): Promise<YCloudTemplateResponse> {
   const body = {
@@ -83,7 +84,7 @@ export async function sendTemplateMessage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': ycloudConfig.apiKey,
+        'X-API-Key': shopApiKey ?? ycloudConfig.apiKey,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(10_000), // 10s timeout
@@ -123,6 +124,6 @@ export async function sendTemplateMessage(
     )
     await sleep(delay)
 
-    return sendTemplateMessage(payload, attempt + 1)
+    return sendTemplateMessage(payload, shopApiKey, attempt + 1)
   }
 }

@@ -58,18 +58,26 @@ export async function sendAppointmentConfirmation(
     const { date, time } = formatDateTime(payload.datetime)
 
     // 2. Enviar template a YCloud (con reintentos internos en caso de 5xx)
-    await sendTemplateMessage({
-      to: phone,
-      template_name: 'confirmacion_turno',
-      from: payload.shopSender,
-      parameters: {
-        p1_name: payload.clientName,
-        p2_date: date,
-        p3_time: time,
-        p4_service: payload.serviceName,
-        p5_prof: payload.professionalName,
+    // Parámetros según template "aviso_turno_cliente_v1":
+    // {{1}} nombre cliente · {{2}} negocio · {{3}} fecha · {{4}} hora
+    // {{5}} servicio · {{6}} profesional · {{7}} ubicación
+    await sendTemplateMessage(
+      {
+        to: phone,
+        template_name: 'aviso_turno_cliente_v1',
+        from: payload.shopSender,
+        parameters: {
+          p1_name:     payload.clientName,
+          p2_shop:     payload.shopName,
+          p3_date:     date,
+          p4_time:     time,
+          p5_service:  payload.serviceName,
+          p6_prof:     payload.professionalName,
+          p7_location: payload.shopLocation ?? payload.shopName,
+        },
       },
-    })
+      payload.shopApiKey
+    )
 
     status = 'success'
     console.info(

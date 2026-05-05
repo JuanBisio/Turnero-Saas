@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
       serviceName: appointment.service?.name ?? 'Servicio',
       professionalName: appointment.professional?.name ?? 'Profesional',
       datetime: appointment.start_time,
+      shopName: shop.name,
+      shopLocation: shop.address ?? undefined,
+      shopSender: shop.whatsapp_number ?? undefined,
+      shopApiKey: shop.ycloud_api_key ?? undefined,
     }).catch(err =>
       console.error('[route] Error en notificación WhatsApp:', err)
     )
