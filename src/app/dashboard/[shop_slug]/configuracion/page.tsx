@@ -27,6 +27,12 @@ export default function ConfiguracionPage() {
   const [whatsappMessage, setWhatsappMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // Canal de notificaciones
+  const [notifChannel, setNotifChannel] = useState<'whatsapp' | 'email'>('whatsapp')
+  const [emailReplyTo, setEmailReplyTo] = useState('')
+  const [channelLoading, setChannelLoading] = useState(false)
+  const [channelMessage, setChannelMessage] = useState<{type: 'success' | 'error', text: string} | null>(null)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -36,6 +42,8 @@ export default function ConfiguracionPage() {
       setWhatsappNumber(shopData.whatsapp_number || '')
       setYcloudApiKey(shopData.ycloud_api_key || '')
       setYcloudWebhookSecret(shopData.ycloud_webhook_secret || '')
+      setNotifChannel((shopData.notification_channel as 'whatsapp' | 'email') ?? 'whatsapp')
+      setEmailReplyTo(shopData.email_reply_to || '')
 
       if (shopId) {
         const secret = generateWebhookSecretClient(shopId)
@@ -90,6 +98,29 @@ export default function ConfiguracionPage() {
       setMessage({ type: 'error', text: 'Error al guardar configuración' })
     } else {
       setMessage({ type: 'success', text: 'Configuración guardada exitosamente' })
+      refetchShop()
+    }
+  }
+
+  async function handleSaveChannel() {
+    if (!shopId) return
+    setChannelLoading(true)
+    setChannelMessage(null)
+
+    const { error } = await supabase
+      .from('shops')
+      .update({
+        notification_channel: notifChannel,
+        email_reply_to: emailReplyTo || null,
+      })
+      .eq('id', shopId)
+
+    setChannelLoading(false)
+
+    if (error) {
+      setChannelMessage({ type: 'error', text: 'Error al guardar' })
+    } else {
+      setChannelMessage({ type: 'success', text: 'Canal de notificaciones actualizado' })
       refetchShop()
     }
   }
@@ -163,6 +194,94 @@ export default function ConfiguracionPage() {
         </p>
       </div>
 
+      {/* Canal de notificaciones */}
+      <div className="rounded-lg border bg-card">
+        <div className="border-b p-6">
+          <h3 className="text-xl font-semibold">Canal de notificaciones</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            Elegí cómo reciben la confirmación tus clientes al reservar un turno
+          </p>
+        </div>
+        <div className="p-6 space-y-6">
+          {/* Selector */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setNotifChannel('whatsapp')}
+              className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+                notifChannel === 'whatsapp'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'hover:bg-accent'
+              }`}
+            >
+              WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => setNotifChannel('email')}
+              className={`flex-1 rounded-lg border px-4 py-3 text-sm font-medium transition-colors ${
+                notifChannel === 'email'
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'hover:bg-accent'
+              }`}
+            >
+              Email
+            </button>
+          </div>
+
+          {/* Info contextual */}
+          {notifChannel === 'whatsapp' && (
+            <p className="text-sm text-muted-foreground">
+              Los clientes ingresan su teléfono y reciben la confirmación por WhatsApp. Configurá las credenciales de YCloud en la sección de abajo.
+            </p>
+          )}
+
+          {notifChannel === 'email' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Los clientes ingresan su email y reciben la confirmación por correo electrónico. El envío se hace desde la plataforma — no necesitás configurar credenciales adicionales.
+              </p>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Email de respuesta del negocio (opcional)
+                </label>
+                <input
+                  type="email"
+                  placeholder="contacto@minegocio.com"
+                  value={emailReplyTo}
+                  onChange={(e) => setEmailReplyTo(e.target.value)}
+                  className="w-full rounded-lg border bg-background px-4 py-2"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Si el cliente responde al correo de confirmación, el mensaje llegará a esta dirección.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {channelMessage && (
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                channelMessage.type === 'success'
+                  ? 'bg-accent/20 text-accent-foreground'
+                  : 'bg-destructive/10 text-destructive'
+              }`}
+            >
+              {channelMessage.text}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleSaveChannel}
+            disabled={channelLoading}
+            className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {channelLoading ? 'Guardando...' : 'Guardar canal'}
+          </button>
+        </div>
+      </div>
+
       {/* Integraciones con n8n */}
       <div className="rounded-lg border bg-card">
         <div className="border-b p-6">
@@ -185,7 +304,7 @@ export default function ConfiguracionPage() {
                 readOnly
                 className="flex-1 rounded-lg border bg-muted px-4 py-2 font-mono text-sm"
               />
-              <button className="rounded-lg border px-4 py-2 hover:bg-accent">
+              <button type="button" className="rounded-lg border px-4 py-2 hover:bg-accent">
                 Regenerar
               </button>
             </div>
@@ -236,6 +355,7 @@ export default function ConfiguracionPage() {
           {/* Enable/Disable */}
           <div className="flex items-center gap-3">
             <button
+              type="button"
               onClick={() => setWebhookEnabled(!webhookEnabled)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 webhookEnabled ? 'bg-primary' : 'bg-muted'
@@ -268,14 +388,16 @@ export default function ConfiguracionPage() {
           {/* Actions */}
           <div className="flex gap-3">
             <button
+              type="button"
               onClick={handleSave}
               disabled={loading}
               className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {loading ? 'Guardando...' : 'Guardar Configuración'}
             </button>
-            
+
             <button
+              type="button"
               onClick={handleTestWebhook}
               disabled={!webhookUrl || !webhookEnabled || testLoading}
               className="rounded-lg border px-4 py-2 font-medium hover:bg-accent disabled:opacity-50"

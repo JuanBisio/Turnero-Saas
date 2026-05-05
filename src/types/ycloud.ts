@@ -89,14 +89,17 @@ export interface YCloudTemplateResponse {
 export interface AppointmentNotificationPayload {
   appointmentId: string;
   clientPhone: string;
+  clientEmail?: string;
   clientName: string;
   datetime: string;
   serviceName: string;
   professionalName: string;
-  shopName: string;       // {{2}} "Tu turno en {{2}}"
-  shopLocation?: string;  // {{7}} Ubicación; fallback a shopName si no está
-  shopSender?: string;    // Número WhatsApp del negocio (from)
-  shopApiKey?: string;    // API Key de YCloud del negocio
+  shopName: string;
+  shopLocation?: string;
+  shopSender?: string;
+  shopApiKey?: string;
+  notificationChannel?: 'whatsapp' | 'email';
+  emailReplyTo?: string;
 }
 
 export type YCloudOutboundMessage = 

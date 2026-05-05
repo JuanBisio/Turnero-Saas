@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       appointmentId: appointment.id,
       clientName: appointment.customer_name,
       clientPhone: appointment.customer_phone,
+      clientEmail: appointment.customer_email ?? undefined,
       serviceName: appointment.service?.name ?? 'Servicio',
       professionalName: appointment.professional?.name ?? 'Profesional',
       datetime: appointment.start_time,
@@ -51,8 +52,10 @@ export async function POST(request: NextRequest) {
       shopLocation: shop.address ?? undefined,
       shopSender: shop.whatsapp_number ?? undefined,
       shopApiKey: shop.ycloud_api_key ?? undefined,
+      notificationChannel: (shop.notification_channel ?? 'whatsapp') as 'whatsapp' | 'email',
+      emailReplyTo: shop.email_reply_to ?? undefined,
     }).catch(err =>
-      console.error('[route] Error en notificación WhatsApp:', err)
+      console.error('[route] Error en notificación:', err)
     )
 
     // Only send webhook if enabled

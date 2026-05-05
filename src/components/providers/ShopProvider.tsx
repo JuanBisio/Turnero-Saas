@@ -30,6 +30,8 @@ interface ShopData {
   whatsapp_number: string | null
   ycloud_api_key: string | null
   ycloud_webhook_secret: string | null
+  notification_channel: string
+  email_reply_to: string | null
 }
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined)
@@ -51,7 +53,7 @@ export function ShopProvider({
     try {
       const { data, error } = await supabase
         .from('shops')
-        .select('id, name, slug, timezone, min_lead_time_minutes, theme, api_key_n8n, webhook_url, webhook_enabled, webhook_secret, whatsapp_number, ycloud_api_key, ycloud_webhook_secret')
+        .select('id, name, slug, timezone, min_lead_time_minutes, theme, api_key_n8n, webhook_url, webhook_enabled, webhook_secret, whatsapp_number, ycloud_api_key, ycloud_webhook_secret, notification_channel, email_reply_to')
         .eq('slug', shopSlug)
         .single()
 

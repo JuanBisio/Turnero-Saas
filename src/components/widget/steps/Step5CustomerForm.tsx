@@ -16,10 +16,12 @@ import { cn } from '@/lib/utils'
 
 export function Step5CustomerForm() {
   const { state, dispatch } = useBooking()
-  const { shopId } = useShop()
+  const { shopId, shopData } = useShop()
+  const channel = (shopData?.notification_channel ?? 'whatsapp') as 'whatsapp' | 'email'
+
   const [name, setName] = useState(state.customerName)
-  // Initialize phone with +54 if empty
   const [phone, setPhone] = useState(state.customerPhone || '+54 ')
+  const [email, setEmail] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const supabase = createClient()
@@ -46,19 +48,21 @@ export function Step5CustomerForm() {
       return
     }
 
-    // Validation
     if (!name) {
       alert('Por favor ingresa tu nombre')
       return
     }
 
-    if (!phone || phone.length < 13) { // +54 9 (6) + 1234 (4) = 10 minimum? Let's be safer. +54 9 11 1111 1111 is standard.
-       // +54 9 (6 chars). 
-       // If user types minimal valid number: 11 1234 5678 (10 digits). Total length = 6+10 = 16.
-       // Let's require at least 10 chars total which means 4 digits. That's too low.
-       // Let's require length > 12 (implies at least 7 digits after prefix)
-      alert('Por favor ingresa un número de teléfono válido (mínimo 7 dígitos)')
-      return
+    if (channel === 'email') {
+      if (!email || !email.includes('@')) {
+        alert('Por favor ingresa un email válido')
+        return
+      }
+    } else {
+      if (!phone || phone.length < 13) {
+        alert('Por favor ingresa un número de teléfono válido (mínimo 7 dígitos)')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -80,10 +84,9 @@ export function Step5CustomerForm() {
         .join('')
         .substring(0, 32)
       
-      // Sanitized phone for email generation
+      const isEmail = channel === 'email'
       const cleanPhone = phone.replace(/\D/g, '')
 
-      // Create appointment via API (bypasses RLS)
       const response = await fetch('/api/public/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,9 +97,8 @@ export function Step5CustomerForm() {
           start_time: startDate.toISOString(),
           end_time: endDate.toISOString(),
           customer_name: name,
-          customer_phone: phone,
-          // Generate placeholder email as user requested removal of field
-          customer_email: `${cleanPhone}@whatsapp.placeholder`, 
+          customer_phone: isEmail ? `email_${Date.now()}@placeholder` : phone,
+          customer_email: isEmail ? email : `${cleanPhone}@whatsapp.placeholder`,
           cancellation_token: cancellationToken,
         }),
       })
@@ -152,12 +154,16 @@ export function Step5CustomerForm() {
         </h3>
         
         <p className="text-zinc-400 text-lg mb-8 max-w-md leading-relaxed">
-          ¡Listo! Recibirás una confirmación por WhatsApp en segundos.
+          {channel === 'email'
+            ? '¡Listo! Recibirás una confirmación en tu correo en breve.'
+            : '¡Listo! Recibirás una confirmación por WhatsApp en segundos.'}
         </p>
-        
+
         <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5 backdrop-blur-sm">
           <p className="text-sm text-zinc-500">
-            Revisa tu teléfono para ver los detalles del turno.
+            {channel === 'email'
+              ? 'Revisá tu bandeja de entrada para ver los detalles del turno.'
+              : 'Revisa tu teléfono para ver los detalles del turno.'}
           </p>
         </div>
       </div>
@@ -190,24 +196,41 @@ export function Step5CustomerForm() {
           </div>
         </div>
 
-        <div className="group">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 group-focus-within:text-white transition-colors">
-            Teléfono (WhatsApp) *
-          </label>
-          <div className="relative">
-            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-white transition-colors" />
-            <input
-              type="tel"
-              value={phone}
-              onChange={handlePhoneChange}
-              className="w-full h-14 bg-white/[0.02] border-b border-white/10 px-12 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 focus:bg-white/[0.04] transition-all rounded-t-lg"
-              placeholder="+54 358 1234567"
-              required
-            />
+        {channel === 'email' ? (
+          <div className="group">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 group-focus-within:text-white transition-colors">
+              Email *
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-white transition-colors" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-14 bg-white/[0.02] border-b border-white/10 px-12 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 focus:bg-white/[0.04] transition-all rounded-t-lg"
+                placeholder="tu@email.com"
+                required
+              />
+            </div>
           </div>
-        </div>
-
-        {/* Email field removed as per request */}
+        ) : (
+          <div className="group">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2 group-focus-within:text-white transition-colors">
+              Teléfono (WhatsApp) *
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600 group-focus-within:text-white transition-colors" />
+              <input
+                type="tel"
+                value={phone}
+                onChange={handlePhoneChange}
+                className="w-full h-14 bg-white/[0.02] border-b border-white/10 px-12 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 focus:bg-white/[0.04] transition-all rounded-t-lg"
+                placeholder="+54 358 1234567"
+                required
+              />
+            </div>
+          </div>
+        )}
 
         {/* CAPTCHA */}
         <div className="flex justify-center py-4">

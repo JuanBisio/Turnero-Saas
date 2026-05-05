@@ -15,6 +15,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { AppointmentNotificationPayload } from '@/types/ycloud'
 import { formatPhone, formatDateTime } from './whatsappUtils'
 import { sendTemplateMessage } from './ycloudService'
+import { sendAppointmentConfirmationEmail } from '@/lib/email/emailService'
 
 export type NotificationStatus = 'success' | 'failed'
 
@@ -53,36 +54,49 @@ export async function sendAppointmentConfirmation(
   let errorMessage: string | null = null
 
   try {
-    // 1. Formatear teléfono y fecha/hora
-    const phone = formatPhone(payload.clientPhone)
     const { date, time } = formatDateTime(payload.datetime)
+    const channel = payload.notificationChannel ?? 'whatsapp'
 
-    // 2. Enviar template a YCloud (con reintentos internos en caso de 5xx)
-    // Parámetros según template "aviso_turno_cliente_v1":
-    // {{1}} nombre cliente · {{2}} negocio · {{3}} fecha · {{4}} hora
-    // {{5}} servicio · {{6}} profesional · {{7}} ubicación
-    await sendTemplateMessage(
-      {
-        to: phone,
-        template_name: 'aviso_turno_cliente_v1',
-        from: payload.shopSender,
-        parameters: {
-          p1_name:     payload.clientName,
-          p2_shop:     payload.shopName,
-          p3_date:     date,
-          p4_time:     time,
-          p5_service:  payload.serviceName,
-          p6_prof:     payload.professionalName,
-          p7_location: payload.shopLocation ?? payload.shopName,
+    if (channel === 'email') {
+      if (!payload.clientEmail) {
+        throw new Error('[Notifications] Canal email pero clientEmail no fue provisto.')
+      }
+      await sendAppointmentConfirmationEmail({
+        to: payload.clientEmail,
+        clientName: payload.clientName,
+        shopName: payload.shopName,
+        date,
+        time,
+        serviceName: payload.serviceName,
+        professionalName: payload.professionalName,
+        shopLocation: payload.shopLocation,
+        replyTo: payload.emailReplyTo,
+      })
+      status = 'success'
+      console.info(`[Notifications] Email enviado OK → turno ${payload.appointmentId}`)
+    } else {
+      // WhatsApp: template "aviso_turno_cliente_v1" (7 parámetros)
+      const phone = formatPhone(payload.clientPhone)
+      await sendTemplateMessage(
+        {
+          to: phone,
+          template_name: 'aviso_turno_cliente_v1',
+          from: payload.shopSender,
+          parameters: {
+            p1_name:     payload.clientName,
+            p2_shop:     payload.shopName,
+            p3_date:     date,
+            p4_time:     time,
+            p5_service:  payload.serviceName,
+            p6_prof:     payload.professionalName,
+            p7_location: payload.shopLocation ?? payload.shopName,
+          },
         },
-      },
-      payload.shopApiKey
-    )
-
-    status = 'success'
-    console.info(
-      `[Notifications] WhatsApp enviado OK → turno ${payload.appointmentId}`
-    )
+        payload.shopApiKey
+      )
+      status = 'success'
+      console.info(`[Notifications] WhatsApp enviado OK → turno ${payload.appointmentId}`)
+    }
 
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : String(error)
