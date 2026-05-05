@@ -79,8 +79,19 @@ export async function POST(
 
     const msg = event.whatsappInboundMessage;
     const phone = msg.from;
-    const userText = msg.text?.body ?? extractText(msg);
     const userName = msg.customerProfile?.name ?? "Cliente";
+
+    // Ignorar tipos no soportados (imagen, audio, doc…) con mensaje amigable.
+    // Siempre retornar 200 para que YCloud no reintente el webhook.
+    if (msg.type !== "text" && msg.type !== "interactive") {
+      await sendWhatsAppMessage(
+        buildText(phone, senderPhone, "Solo puedo procesar mensajes de texto por ahora. ¿En qué te puedo ayudar? 😊"),
+        shopApiKey
+      ).catch(() => {/* silenciar error de envío */});
+      return NextResponse.json({ ok: true });
+    }
+
+    const userText = msg.text?.body ?? extractText(msg);
 
     // 3. Cargar sesión y contexto del negocio en paralelo
     const [session, shopCtx] = await Promise.all([
@@ -188,7 +199,9 @@ export async function POST(
       }
     } catch { /* silenciar error secundario */ }
 
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    // Retornar 200 siempre: si retornamos 500, YCloud reintenta el webhook
+    // y el cliente recibe el mensaje de error múltiples veces.
+    return NextResponse.json({ ok: true });
   }
 }
 
