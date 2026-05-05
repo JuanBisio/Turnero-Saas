@@ -77,6 +77,11 @@ export async function POST(
     const event: YCloudInboundEvent = JSON.parse(rawBody);
     if (!event.whatsappInboundMessage) return NextResponse.json({ ok: true });
 
+    // Bot desactivado: acusar recibo sin responder
+    if (process.env.WHATSAPP_BOT_ENABLED !== "true") {
+      return NextResponse.json({ ok: true });
+    }
+
     const msg = event.whatsappInboundMessage;
     const phone = msg.from;
     const userName = msg.customerProfile?.name ?? "Cliente";
