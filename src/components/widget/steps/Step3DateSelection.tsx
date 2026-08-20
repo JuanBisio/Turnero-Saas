@@ -5,22 +5,67 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useBooking } from '../BookingProvider'
+import { useShop } from '@/components/providers/ShopProvider'
 import { format, addDays, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
+type DayStatus = 'available' | 'no-schedule' | 'blocked' | 'full'
+
+const UNAVAILABLE_REASON: Record<Exclude<DayStatus, 'available'>, string> = {
+  'no-schedule': 'No atiende este día',
+  'blocked': 'Día no disponible',
+  'full': 'Sin turnos libres',
+}
+
 export function Step3DateSelection() {
   const { state, dispatch } = useBooking()
+  const { shopId } = useShop()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     state.selectedDate ? new Date(state.selectedDate) : undefined
   )
+  const [statusByDate, setStatusByDate] = useState<Record<string, DayStatus>>({})
 
   // Generate next 14 days
   const today = new Date()
   const dates = Array.from({ length: 14 }, (_, i) => addDays(today, i))
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!state.selectedService || !state.selectedProfessional || !shopId) {
+        return
+      }
+
+      try {
+        const params = new URLSearchParams({
+          startDate: format(dates[0], 'yyyy-MM-dd'),
+          endDate: format(dates[dates.length - 1], 'yyyy-MM-dd'),
+          serviceId: state.selectedService.id,
+          professionalId: state.selectedProfessional.id,
+          shopId,
+        })
+
+        const response = await fetch(`/api/public/availability/range?${params}`)
+        const data = await response.json()
+
+        if (response.ok && Array.isArray(data.days)) {
+          const map: Record<string, DayStatus> = {}
+          for (const day of data.days) {
+            map[day.date] = day.status
+          }
+          setStatusByDate(map)
+        }
+      } catch (error) {
+        console.error('Error fetching date availability:', error)
+      }
+    }
+
+    fetchAvailability()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.selectedService, state.selectedProfessional, shopId])
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date)
@@ -54,8 +99,8 @@ export function Step3DateSelection() {
         <h2 className="text-xl font-bold text-white mb-2">Selecciona una Fecha</h2>
         <p className="text-zinc-400 text-sm">¿Cuándo te gustaría venir? (Próximos 14 días)</p>
       </div>
-      
-      <motion.div 
+
+      <motion.div
         variants={container}
         initial="hidden"
         animate="show"
@@ -65,17 +110,23 @@ export function Step3DateSelection() {
           const dateStr = format(date, 'yyyy-MM-dd')
           const isSelected = state.selectedDate === dateStr
           const isToday = isSameDay(date, today)
-          
+          const status = statusByDate[dateStr]
+          const isUnavailable = !!status && status !== 'available'
+
           return (
             <motion.button
               key={dateStr}
               variants={item}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleSelectDate(date)}
+              whileHover={isUnavailable ? undefined : { scale: 1.05 }}
+              whileTap={isUnavailable ? undefined : { scale: 0.95 }}
+              onClick={() => !isUnavailable && handleSelectDate(date)}
+              disabled={isUnavailable}
+              title={isUnavailable ? UNAVAILABLE_REASON[status as Exclude<DayStatus, 'available'>] : undefined}
               className={cn(
                 "relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex flex-col items-center justify-center gap-1 group",
-                isSelected
+                isUnavailable
+                  ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed'
+                  : isSelected
                   ? 'bg-white border-white shadow-xl scale-105 z-10'
                   : 'bg-white/[0.03] border-white/5 hover:border-white/20 hover:bg-white/[0.05]'
               )}
@@ -86,7 +137,7 @@ export function Step3DateSelection() {
               )}>
                 {isToday ? 'Hoy' : format(date, 'EEE', { locale: es })}
               </span>
-              
+
               <span className={cn(
                 "text-2xl font-bold transition-colors z-10 font-heading",
                 isSelected ? "text-black" : "text-zinc-300 group-hover:text-white"

@@ -4,9 +4,13 @@
  */
 
 export { getAvailableSlots } from './getAvailableSlots'
+export { getAvailabilityStatusForRange } from './getAvailabilityStatusForRange'
 export type {
   AvailabilityParams,
   AvailabilityResult,
+  AvailabilityRangeParams,
+  DayAvailability,
+  DayAvailabilityStatus,
   TimeSlot,
   ScheduleData,
   ExceptionData,

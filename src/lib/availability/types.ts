@@ -95,6 +95,41 @@ export type ProfessionalData = {
 export type AvailabilityResult = string[]
 
 /**
+ * Parameters for calculating per-day availability status over a date range
+ */
+export type AvailabilityRangeParams = {
+  /** Start date in ISO format (YYYY-MM-DD), inclusive */
+  startDate: string
+  /** End date in ISO format (YYYY-MM-DD), inclusive */
+  endDate: string
+  /** UUID of the service */
+  serviceId: string
+  /** UUID of the professional */
+  professionalId: string
+  /** UUID of the shop (for RLS) */
+  shopId: string
+  /** Optional Supabase client (for public access without authentication) */
+  supabaseClient?: SupabaseClient<Database>
+}
+
+/**
+ * Reason a day has no bookable slots
+ * - 'no-schedule': the professional doesn't work that day (no schedule configured)
+ * - 'blocked': the day is fully blocked by an exception
+ * - 'full': the professional works that day but every slot is already taken
+ */
+export type DayAvailabilityStatus = 'available' | 'no-schedule' | 'blocked' | 'full'
+
+/**
+ * Availability status for a single day
+ */
+export type DayAvailability = {
+  /** Date in ISO format (YYYY-MM-DD) */
+  date: string
+  status: DayAvailabilityStatus
+}
+
+/**
  * Configuration constants for the availability engine
  */
 export const AVAILABILITY_CONFIG = {
