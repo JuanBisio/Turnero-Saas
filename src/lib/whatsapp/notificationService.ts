@@ -52,10 +52,10 @@ export async function sendAppointmentConfirmation(
   console.log(`[Notifications] Inicia proceso para turno: ${payload.appointmentId}`)
   let status: NotificationStatus = 'failed'
   let errorMessage: string | null = null
+  const channel = payload.notificationChannel ?? 'whatsapp'
 
   try {
     const { date, time } = formatDateTime(payload.datetime)
-    const channel = payload.notificationChannel ?? 'whatsapp'
 
     if (channel === 'email') {
       if (!payload.clientEmail) {
@@ -101,7 +101,7 @@ export async function sendAppointmentConfirmation(
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : String(error)
     console.error(
-      `[Notifications] Fallo WhatsApp → turno ${payload.appointmentId}:`,
+      `[Notifications] Fallo envío (${channel}) → turno ${payload.appointmentId}:`,
       errorMessage
     )
   } finally {
@@ -111,7 +111,7 @@ export async function sendAppointmentConfirmation(
 
       const { error: dbError } = await supabase.from('notification_logs').insert({
         appointment_id: payload.appointmentId,
-        channel: 'whatsapp',
+        channel,
         status,
         error_message: errorMessage,
         sent_at: new Date().toISOString(),

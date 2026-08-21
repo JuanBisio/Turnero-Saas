@@ -73,9 +73,16 @@ export async function sendAppointmentConfirmationEmail(
 
   const from = process.env.EMAIL_FROM ?? 'Turnero <onboarding@resend.dev>'
 
+  const toOverride = process.env.EMAIL_TO_OVERRIDE
+  const to = toOverride ? [toOverride] : [payload.to]
+
+  if (toOverride) {
+    console.info(`[Email] OVERRIDE: Enviando a ${toOverride} en lugar de ${payload.to}`)
+  }
+
   const body: Record<string, unknown> = {
     from,
-    to: [payload.to],
+    to,
     subject: `Confirmación de turno en ${payload.shopName}`,
     html: buildHtml(payload),
   }
