@@ -15,7 +15,6 @@ import {
   Briefcase,
   Settings,
   LogOut,
-  MessageSquare
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -42,11 +41,6 @@ export function DashboardSidebar({ isTablet = false }: { isTablet?: boolean }) {
       name: 'Agenda',
       icon: Calendar,
       href: `/dashboard/${shopSlug}/agenda`,
-    },
-    {
-      name: 'Mensajes',
-      icon: MessageSquare,
-      href: `/dashboard/${shopSlug}/inbox`,
     },
     {
       name: 'Profesionales',
