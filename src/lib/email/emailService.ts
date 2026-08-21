@@ -73,7 +73,11 @@ export async function sendAppointmentConfirmationEmail(
 
   const from = process.env.EMAIL_FROM ?? 'Turnero <onboarding@resend.dev>'
 
-  const toOverride = process.env.EMAIL_TO_OVERRIDE
+  // EMAIL_TO_OVERRIDE es solo para pruebas en dev/preview — nunca debe
+  // desviar emails de clientes reales en producción, aunque quede seteada
+  // por error en las env vars de producción.
+  const isProduction = process.env.VERCEL_ENV === 'production'
+  const toOverride = !isProduction ? process.env.EMAIL_TO_OVERRIDE : undefined
   const to = toOverride ? [toOverride] : [payload.to]
 
   if (toOverride) {
