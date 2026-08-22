@@ -21,14 +21,22 @@ import {
 } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Search } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 import { DayTimelineView } from './components/DayTimelineView'
 import { WeekView } from './components/WeekView'
 import { MonthView } from './components/MonthView'
+import { ClassicDayView } from './components/ClassicDayView'
 import { AppointmentDetailModal } from './components/AppointmentDetailModal'
 import { BlockDialog } from './components/BlockDialog'
 import { parseTimeToMinutes } from './lib/time'
-import type { Appointment, Exception, Professional, Schedule, ViewMode } from './lib/types'
+import type { Appointment, Exception, LayoutMode, Professional, Schedule, ViewMode } from './lib/types'
+
+const slideVariants = {
+  enter: (dir: number) => ({ x: dir >= 0 ? 24 : -24, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir >= 0 ? -24 : 24, opacity: 0 }),
+}
 
 const FALLBACK_DAY_START = 9 * 60
 const FALLBACK_DAY_END = 20 * 60
@@ -38,9 +46,11 @@ export default function AgendaPage() {
   const supabase = createClient()
 
   const [viewMode, setViewMode] = useState<ViewMode>('dia')
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('timeline')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [searchQuery, setSearchQuery] = useState('')
+  const [direction, setDirection] = useState(1)
 
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -54,6 +64,9 @@ export default function AgendaPage() {
   const professionalIds = useMemo(() => professionals.map((p) => p.id), [professionals])
 
   const range = useMemo(() => {
+    if (layoutMode === 'clasica') {
+      return { start: selectedDate, end: selectedDate }
+    }
     if (viewMode === 'semana') {
       return {
         start: startOfWeek(selectedDate, { weekStartsOn: 1 }),
@@ -64,7 +77,7 @@ export default function AgendaPage() {
       return { start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) }
     }
     return { start: selectedDate, end: selectedDate }
-  }, [viewMode, selectedDate, currentMonth])
+  }, [layoutMode, viewMode, selectedDate, currentMonth])
 
   const fetchProfessionals = useCallback(async () => {
     const { data } = await supabase
@@ -246,26 +259,31 @@ export default function AgendaPage() {
   )
 
   const navigate = useCallback(
-    (direction: 1 | -1) => {
-      if (viewMode === 'dia') setSelectedDate((d) => addDays(d, direction))
-      else if (viewMode === 'semana') setSelectedDate((d) => addWeeks(d, direction))
-      else setCurrentMonth((m) => addMonths(m, direction))
+    (step: 1 | -1) => {
+      setDirection(step)
+      const effectiveMode = layoutMode === 'clasica' ? 'dia' : viewMode
+      if (effectiveMode === 'dia') setSelectedDate((d) => addDays(d, step))
+      else if (effectiveMode === 'semana') setSelectedDate((d) => addWeeks(d, step))
+      else setCurrentMonth((m) => addMonths(m, step))
     },
-    [viewMode]
+    [viewMode, layoutMode]
   )
 
   const goToday = () => {
     const today = new Date()
+    setDirection(1)
     setSelectedDate(today)
     setCurrentMonth(today)
   }
 
   const headerLabel =
-    viewMode === 'dia'
+    layoutMode === 'clasica' || viewMode === 'dia'
       ? format(selectedDate, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })
       : viewMode === 'semana'
       ? `${format(range.start, 'd MMM', { locale: es })} - ${format(range.end, 'd MMM yyyy', { locale: es })}`
       : format(currentMonth, 'MMMM yyyy', { locale: es })
+
+  const viewKey = `${layoutMode}-${layoutMode === 'clasica' ? 'dia' : viewMode}-${format(selectedDate, 'yyyy-MM-dd')}-${format(currentMonth, 'yyyy-MM')}`
 
   return (
     <div className="space-y-6 p-2">
@@ -275,33 +293,33 @@ export default function AgendaPage() {
       </div>
 
       {/* Toolbar */}
-      <div className="glass-card-dark p-4 flex flex-wrap items-center gap-3 justify-between">
-        <div className="flex items-center gap-3">
+      <div className="glass-card-dark p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
+            className="p-2 shrink-0 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
           >
             ←
           </button>
-          <h3 className="font-bold text-lg font-heading text-white capitalize min-w-[220px]">
+          <h3 className="font-bold text-base sm:text-lg font-heading text-white capitalize truncate">
             {headerLabel}
           </h3>
           <button
             onClick={() => navigate(1)}
-            className="p-2 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
+            className="p-2 shrink-0 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
           >
             →
           </button>
           <button
             onClick={goToday}
-            className="ml-2 px-3 py-1.5 rounded-lg border border-white/10 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+            className="ml-1 shrink-0 px-3 py-1.5 rounded-lg border border-white/10 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
           >
             Hoy
           </button>
         </div>
 
-        <div className="flex items-center gap-3 flex-1 justify-end min-w-[260px]">
-          <div className="relative flex-1 max-w-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-1 sm:justify-end">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
             <input
               type="text"
@@ -312,73 +330,126 @@ export default function AgendaPage() {
             />
           </div>
 
-          <div className="flex rounded-lg border border-white/10 overflow-hidden">
-            {(['dia', 'semana', 'mes'] as ViewMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-3 py-2 text-sm font-medium capitalize transition-colors ${
-                  viewMode === mode ? 'bg-white text-black' : 'text-zinc-300 hover:bg-white/10'
-                }`}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex rounded-lg border border-white/10 overflow-hidden">
+              {(['timeline', 'clasica'] as LayoutMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setLayoutMode(mode)}
+                  className={`px-3 py-2 text-sm font-medium transition-colors ${
+                    layoutMode === mode ? 'bg-white text-black' : 'text-zinc-300 hover:bg-white/10'
+                  }`}
+                >
+                  {mode === 'timeline' ? 'Timeline' : 'Clásica'}
+                </button>
+              ))}
+            </div>
 
-          <button
-            onClick={() => {
-              setBlockDefaults({})
-              setShowBlockDialog(true)
-            }}
-            className="rounded-lg bg-white text-black font-bold text-sm px-4 py-2 hover:bg-zinc-200 shadow-md shadow-white/10 transition-all whitespace-nowrap"
-          >
-            Bloquear horario
-          </button>
+            {layoutMode === 'timeline' && (
+              <div className="flex rounded-lg border border-white/10 overflow-hidden">
+                {(['dia', 'semana', 'mes'] as ViewMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-3 py-2 text-sm font-medium capitalize transition-colors ${
+                      viewMode === mode ? 'bg-white text-black' : 'text-zinc-300 hover:bg-white/10'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {layoutMode === 'timeline' && (
+              <button
+                onClick={() => {
+                  setBlockDefaults({})
+                  setShowBlockDialog(true)
+                }}
+                className="rounded-lg bg-white text-black font-bold text-sm px-4 py-2 hover:bg-zinc-200 shadow-md shadow-white/10 transition-all whitespace-nowrap"
+              >
+                Bloquear horario
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Views */}
-      {viewMode === 'dia' && (
-        <DayTimelineView
-          professionals={professionals}
-          appointments={filteredAppointments}
-          exceptions={exceptions}
-          dayStartMin={dayBounds.start}
-          dayEndMin={dayBounds.end}
-          highlightId={null}
-          onSelectAppointment={setSelectedAppointment}
-          onSlotClick={(professionalId, timeHHmm) => {
-            setBlockDefaults({ professionalId, startTime: timeHHmm })
-            setShowBlockDialog(true)
-          }}
-          onDeleteException={deleteException}
-        />
-      )}
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div
+          key={viewKey}
+          custom={direction}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
+          {layoutMode === 'clasica' && (
+            <ClassicDayView
+              professionals={professionals}
+              appointments={filteredAppointments}
+              exceptions={exceptions}
+              selectedDate={selectedDate}
+              onSelectDate={(day) => {
+                setDirection(1)
+                setSelectedDate(day)
+              }}
+              onStatusChange={updateAppointmentStatus}
+              onDeleteException={deleteException}
+              onOpenBlockDialog={(professionalId) => {
+                setBlockDefaults({ professionalId })
+                setShowBlockDialog(true)
+              }}
+            />
+          )}
 
-      {viewMode === 'semana' && (
-        <WeekView
-          weekDays={weekDays}
-          appointments={filteredAppointments}
-          selectedDate={selectedDate}
-          onSelectDay={(day) => {
-            setSelectedDate(day)
-            setViewMode('dia')
-          }}
-        />
-      )}
+          {layoutMode === 'timeline' && viewMode === 'dia' && (
+            <DayTimelineView
+              professionals={professionals}
+              appointments={filteredAppointments}
+              exceptions={exceptions}
+              dayStartMin={dayBounds.start}
+              dayEndMin={dayBounds.end}
+              highlightId={null}
+              onSelectAppointment={setSelectedAppointment}
+              onSlotClick={(professionalId, timeHHmm) => {
+                setBlockDefaults({ professionalId, startTime: timeHHmm })
+                setShowBlockDialog(true)
+              }}
+              onDeleteException={deleteException}
+            />
+          )}
 
-      {viewMode === 'mes' && (
-        <MonthView
-          month={currentMonth}
-          selectedDate={selectedDate}
-          appointments={filteredAppointments}
-          onSelectDay={(day) => {
-            setSelectedDate(day)
-            setViewMode('dia')
-          }}
-        />
-      )}
+          {layoutMode === 'timeline' && viewMode === 'semana' && (
+            <WeekView
+              weekDays={weekDays}
+              appointments={filteredAppointments}
+              selectedDate={selectedDate}
+              onSelectDay={(day) => {
+                setDirection(1)
+                setSelectedDate(day)
+                setViewMode('dia')
+              }}
+            />
+          )}
+
+          {layoutMode === 'timeline' && viewMode === 'mes' && (
+            <MonthView
+              month={currentMonth}
+              selectedDate={selectedDate}
+              appointments={filteredAppointments}
+              onSelectDay={(day) => {
+                setDirection(1)
+                setSelectedDate(day)
+                setViewMode('dia')
+              }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       {selectedAppointment && (
         <AppointmentDetailModal

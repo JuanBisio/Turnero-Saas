@@ -38,3 +38,5 @@ export type Schedule = {
 }
 
 export type ViewMode = 'dia' | 'semana' | 'mes'
+
+export type LayoutMode = 'timeline' | 'clasica'
