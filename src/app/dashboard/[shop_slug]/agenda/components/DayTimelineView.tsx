@@ -9,6 +9,9 @@ import type { Appointment, Exception, Professional } from '../lib/types'
 const PX_PER_HOUR = 128
 const PX_PER_MIN = PX_PER_HOUR / 60
 const COLUMN_TEMPLATE = 'minmax(min(170px, 62vw), 1fr)'
+// Room above the first gridline so its vertically-centered label doesn't
+// get clipped by the sticky header when scrolled to the top.
+const TOP_PADDING = 18
 
 type Props = {
   professionals: Professional[]
@@ -34,7 +37,7 @@ export function DayTimelineView({
   onDeleteException,
 }: Props) {
   const totalMinutes = Math.max(dayEndMin - dayStartMin, 60)
-  const gridHeight = totalMinutes * PX_PER_MIN
+  const gridHeight = totalMinutes * PX_PER_MIN + TOP_PADDING
   const hourMarks: number[] = []
   for (let m = Math.ceil(dayStartMin / 60) * 60; m <= dayEndMin; m += 60) {
     hourMarks.push(m)
@@ -92,7 +95,7 @@ export function DayTimelineView({
                 <div
                   key={m}
                   className="absolute left-0 right-0 px-2 text-[11px] text-zinc-500 -translate-y-1/2"
-                  style={{ top: (m - dayStartMin) * PX_PER_MIN }}
+                  style={{ top: (m - dayStartMin) * PX_PER_MIN + TOP_PADDING }}
                 >
                   {minutesToLabel(m)}
                 </div>
@@ -127,7 +130,7 @@ export function DayTimelineView({
                   onClick={(e) => {
                     if (e.target !== e.currentTarget) return
                     const rect = e.currentTarget.getBoundingClientRect()
-                    const offsetY = e.clientY - rect.top
+                    const offsetY = e.clientY - rect.top - TOP_PADDING
                     const clickedMin = dayStartMin + Math.round(offsetY / PX_PER_MIN / 15) * 15
                     onSlotClick(prof.id, minutesToLabel(clickedMin))
                   }}
@@ -137,7 +140,7 @@ export function DayTimelineView({
                     <div
                       key={m}
                       className="absolute left-0 right-0 border-t border-white/5 pointer-events-none"
-                      style={{ top: (m - dayStartMin) * PX_PER_MIN }}
+                      style={{ top: (m - dayStartMin) * PX_PER_MIN + TOP_PADDING }}
                     />
                   ))}
 
@@ -151,7 +154,7 @@ export function DayTimelineView({
                       {timedExceptions.map((exc) => {
                         const startMin = parseTimeToMinutes(exc.start_time!)
                         const endMin = parseTimeToMinutes(exc.end_time!)
-                        const top = (startMin - dayStartMin) * PX_PER_MIN
+                        const top = (startMin - dayStartMin) * PX_PER_MIN + TOP_PADDING
                         const height = Math.max((endMin - startMin) * PX_PER_MIN, 24)
                         return (
                           <div
@@ -175,7 +178,7 @@ export function DayTimelineView({
                       {profAppointments.map((apt, index) => {
                         const startMin = isoToMinutes(apt.start_time)
                         const endMin = isoToMinutes(apt.end_time)
-                        const top = (startMin - dayStartMin) * PX_PER_MIN
+                        const top = (startMin - dayStartMin) * PX_PER_MIN + TOP_PADDING
                         const height = Math.max((endMin - startMin) * PX_PER_MIN, 36)
                         const layout = lanes.get(apt.id) ?? { lane: 0, laneCount: 1 }
                         const widthPct = 100 / layout.laneCount
