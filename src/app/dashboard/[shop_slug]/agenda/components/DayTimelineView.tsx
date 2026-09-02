@@ -1,7 +1,7 @@
 'use client'
 
 import { Check, Lock } from 'lucide-react'
-import { getProfessionalColor } from '../lib/colors'
+import { getProfessionalColor } from '@/lib/professionalColors'
 import { assignLanes } from '../lib/lanes'
 import { isoToMinutes, parseTimeToMinutes, minutesToLabel } from '../lib/time'
 import type { Appointment, Exception, Professional } from '../lib/types'
@@ -106,7 +106,7 @@ export function DayTimelineView({
             {professionals.map((prof) => {
               const color = getProfessionalColor(prof.id)
               const profExceptions = exceptions.filter((e) => e.professional_id === prof.id)
-              const fullDayBlocked = profExceptions.some(
+              const fullDayException = profExceptions.find(
                 (e) => e.is_blocked && !e.start_time && !e.end_time
               )
               const profAppointments = appointments
@@ -144,8 +144,15 @@ export function DayTimelineView({
                     />
                   ))}
 
-                  {fullDayBlocked ? (
-                    <div className="absolute inset-1 rounded-xl bg-zinc-800/30 border border-white/5 flex flex-col items-center justify-center gap-2 text-zinc-500 pointer-events-none">
+                  {fullDayException ? (
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteException(fullDayException.id)
+                      }}
+                      title="Click para desbloquear"
+                      className="absolute inset-1 rounded-xl bg-zinc-800/30 border border-white/5 flex flex-col items-center justify-center gap-2 text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300 transition-colors cursor-pointer"
+                    >
                       <Lock className="w-5 h-5" />
                       <span className="text-xs font-medium">Día bloqueado</span>
                     </div>

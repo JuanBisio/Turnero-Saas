@@ -3,7 +3,7 @@
 import { format, isSameDay, isToday } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { parseISO } from 'date-fns'
-import { getProfessionalColor } from '../lib/colors'
+import { getProfessionalColor } from '@/lib/professionalColors'
 import type { Appointment } from '../lib/types'
 
 type Props = {

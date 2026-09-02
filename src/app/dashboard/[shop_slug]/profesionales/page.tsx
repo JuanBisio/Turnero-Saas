@@ -10,12 +10,14 @@ import { useShop } from '@/components/providers/ShopProvider'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { getProfessionalColor } from '@/lib/professionalColors'
 
 type Professional = {
   id: string
   name: string
   buffer_time_minutes: number
   is_active: boolean
+  inactive_reason: string | null
 }
 
 export default function ProfesionalesPage() {
@@ -98,13 +100,15 @@ export default function ProfesionalesPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {professionals.map((prof) => (
+          {professionals.map((prof) => {
+            const color = getProfessionalColor(prof.id)
+            return (
             <div
               key={prof.id}
               className="flex items-center justify-between rounded-lg border bg-card p-4"
             >
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-xl font-semibold">
+                <div className={`flex h-12 w-12 items-center justify-center rounded-full border ${color.border} ${color.bg} ${color.text} text-lg font-bold uppercase`}>
                   {prof.name.charAt(0)}
                 </div>
                 <div>
@@ -113,6 +117,11 @@ export default function ProfesionalesPage() {
                     Buffer: {prof.buffer_time_minutes} min
                     {!prof.is_active && ' · Inactivo'}
                   </p>
+                  {!prof.is_active && prof.inactive_reason && (
+                    <p className="text-xs text-amber-500/80 mt-0.5">
+                      &ldquo;{prof.inactive_reason}&rdquo;
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -130,7 +139,8 @@ export default function ProfesionalesPage() {
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

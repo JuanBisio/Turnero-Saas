@@ -125,7 +125,7 @@ export function Step3DateSelection() {
               className={cn(
                 "relative overflow-hidden p-4 rounded-xl border transition-all duration-300 flex flex-col items-center justify-center gap-1 group",
                 isUnavailable
-                  ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed'
+                  ? 'bg-black/25 border-white/5 cursor-not-allowed'
                   : isSelected
                   ? 'bg-white border-white shadow-xl scale-105 z-10'
                   : 'bg-white/[0.03] border-white/5 hover:border-white/20 hover:bg-white/[0.05]'
@@ -133,21 +133,21 @@ export function Step3DateSelection() {
             >
               <span className={cn(
                 "text-xs uppercase font-medium tracking-widest transition-colors z-10",
-                isSelected ? "text-black/60" : "text-zinc-500 group-hover:text-zinc-300"
+                isSelected ? "text-black/60" : isUnavailable ? "text-zinc-700" : "text-zinc-500 group-hover:text-zinc-300"
               )}>
                 {isToday ? 'Hoy' : format(date, 'EEE', { locale: es })}
               </span>
 
               <span className={cn(
                 "text-2xl font-bold transition-colors z-10 font-heading",
-                isSelected ? "text-black" : "text-zinc-300 group-hover:text-white"
+                isSelected ? "text-black" : isUnavailable ? "text-zinc-600" : "text-zinc-300 group-hover:text-white"
               )}>
                 {format(date, 'd')}
               </span>
 
               <span className={cn(
                 "text-xs transition-colors z-10",
-                isSelected ? "text-black/60" : "text-zinc-600"
+                isSelected ? "text-black/60" : isUnavailable ? "text-zinc-800" : "text-zinc-600"
               )}>
                 {format(date, 'MMM', { locale: es })}
               </span>

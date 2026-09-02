@@ -9,11 +9,12 @@ type Props = {
   defaultProfessionalId?: string
   defaultStartTime?: string
   onClose: () => void
-  onSubmit: (data: { professionalId: string; startTime: string; endTime: string; reason: string }) => Promise<void>
+  onSubmit: (data: { professionalId: string; startTime: string; endTime: string; reason: string; fullDay: boolean }) => Promise<void>
 }
 
 export function BlockDialog({ professionals, defaultProfessionalId, defaultStartTime, onClose, onSubmit }: Props) {
   const [loading, setLoading] = useState(false)
+  const [fullDay, setFullDay] = useState(false)
 
   return (
     <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -36,14 +37,14 @@ export function BlockDialog({ professionals, defaultProfessionalId, defaultStart
             const endTime = formData.get('end_time') as string
             const reason = formData.get('reason') as string
 
-            if (!professionalId || !startTime || !endTime) {
+            if (!professionalId || (!fullDay && (!startTime || !endTime))) {
               alert('Por favor completa todos los campos')
               return
             }
 
             setLoading(true)
             try {
-              await onSubmit({ professionalId, startTime, endTime, reason })
+              await onSubmit({ professionalId, startTime, endTime, reason, fullDay })
             } finally {
               setLoading(false)
             }
@@ -67,26 +68,40 @@ export function BlockDialog({ professionals, defaultProfessionalId, defaultStart
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-300">Hora inicio *</label>
+          <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 cursor-pointer">
             <input
-              type="time"
-              name="start_time"
-              defaultValue={defaultStartTime}
-              className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
-              required
+              type="checkbox"
+              checked={fullDay}
+              onChange={(e) => setFullDay(e.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-transparent accent-white"
             />
-          </div>
+            <span className="text-sm font-medium text-slate-300">Bloquear día completo</span>
+          </label>
 
-          <div>
-            <label className="block text-sm font-medium mb-2 text-slate-300">Hora fin *</label>
-            <input
-              type="time"
-              name="end_time"
-              className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
-              required
-            />
-          </div>
+          {!fullDay && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Hora inicio *</label>
+                <input
+                  type="time"
+                  name="start_time"
+                  defaultValue={defaultStartTime}
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                  required={!fullDay}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-300">Hora fin *</label>
+                <input
+                  type="time"
+                  name="end_time"
+                  className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                  required={!fullDay}
+                />
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-sm font-medium mb-2 text-slate-300">Motivo (opcional)</label>
@@ -111,7 +126,7 @@ export function BlockDialog({ professionals, defaultProfessionalId, defaultStart
               disabled={loading}
               className="flex-1 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold px-4 py-3 shadow-lg shadow-white/10 transition-all disabled:opacity-50"
             >
-              {loading ? 'Bloqueando...' : 'Bloquear Horario'}
+              {loading ? 'Bloqueando...' : fullDay ? 'Bloquear Día' : 'Bloquear Horario'}
             </button>
           </div>
         </form>

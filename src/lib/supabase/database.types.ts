@@ -22,6 +22,9 @@ export type Database = {
           customer_email: string | null
           status: 'pendiente' | 'confirmado' | 'cancelado' | 'completado' | 'no_asistio'
           cancellation_token: string | null
+          cancelled_by: 'customer' | 'admin' | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
         }
         Insert: {
           id?: string
@@ -35,6 +38,9 @@ export type Database = {
           customer_email?: string | null
           status?: 'pendiente' | 'confirmado' | 'cancelado' | 'completado' | 'no_asistio'
           cancellation_token?: string | null
+          cancelled_by?: 'customer' | 'admin' | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
         }
         Update: {
           id?: string
@@ -48,6 +54,53 @@ export type Database = {
           customer_email?: string | null
           status?: 'pendiente' | 'confirmado' | 'cancelado' | 'completado' | 'no_asistio'
           cancellation_token?: string | null
+          cancelled_by?: 'customer' | 'admin' | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+        }
+      }
+      appointment_penalties: {
+        Row: {
+          id: string
+          appointment_id: string
+          shop_id: string
+          penalty_percentage_applied: number
+          penalty_amount: number
+          payment_status: 'pendiente_pago' | 'pagado' | 'no_abonado'
+          payment_link: string | null
+          mp_preference_id: string | null
+          reminders_sent: number
+          last_reminder_at: string | null
+          paid_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          appointment_id: string
+          shop_id: string
+          penalty_percentage_applied: number
+          penalty_amount: number
+          payment_status?: 'pendiente_pago' | 'pagado' | 'no_abonado'
+          payment_link?: string | null
+          mp_preference_id?: string | null
+          reminders_sent?: number
+          last_reminder_at?: string | null
+          paid_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          appointment_id?: string
+          shop_id?: string
+          penalty_percentage_applied?: number
+          penalty_amount?: number
+          payment_status?: 'pendiente_pago' | 'pagado' | 'no_abonado'
+          payment_link?: string | null
+          mp_preference_id?: string | null
+          reminders_sent?: number
+          last_reminder_at?: string | null
+          paid_at?: string | null
+          created_at?: string
         }
       }
       exceptions: {
@@ -83,6 +136,7 @@ export type Database = {
           name: string
           buffer_time_minutes: number
           is_active: boolean
+          inactive_reason: string | null
         }
         Insert: {
           id?: string
@@ -90,6 +144,7 @@ export type Database = {
           name: string
           buffer_time_minutes?: number
           is_active?: boolean
+          inactive_reason?: string | null
         }
         Update: {
           id?: string
@@ -97,6 +152,7 @@ export type Database = {
           name?: string
           buffer_time_minutes?: number
           is_active?: boolean
+          inactive_reason?: string | null
         }
       }
       schedules: {
@@ -154,6 +210,11 @@ export type Database = {
           api_key_n8n: string
           public_key: string
           theme: Json
+          penalty_percentage: number
+          free_cancellation_window_hours: number
+          mp_access_token: string | null
+          mp_user_id: string | null
+          mp_connected_at: string | null
           created_at: string
         }
         Insert: {
@@ -164,6 +225,11 @@ export type Database = {
           api_key_n8n?: string
           public_key?: string
           theme?: Json
+          penalty_percentage?: number
+          free_cancellation_window_hours?: number
+          mp_access_token?: string | null
+          mp_user_id?: string | null
+          mp_connected_at?: string | null
           created_at?: string
         }
         Update: {
@@ -174,6 +240,11 @@ export type Database = {
           api_key_n8n?: string
           public_key?: string
           theme?: Json
+          penalty_percentage?: number
+          free_cancellation_window_hours?: number
+          mp_access_token?: string | null
+          mp_user_id?: string | null
+          mp_connected_at?: string | null
           created_at?: string
         }
       }

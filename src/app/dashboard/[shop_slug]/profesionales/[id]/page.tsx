@@ -52,6 +52,7 @@ export default function ProfessionalFormPage({
   const [name, setName] = useState('')
   const [bufferTime, setBufferTime] = useState(10)
   const [isActive, setIsActive] = useState(true)
+  const [inactiveReason, setInactiveReason] = useState('')
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
@@ -82,6 +83,7 @@ export default function ProfessionalFormPage({
       setName(prof.name)
       setBufferTime(prof.buffer_time_minutes)
       setIsActive(prof.is_active)
+      setInactiveReason(prof.inactive_reason ?? '')
     }
 
     const { data: scheds } = await supabase
@@ -123,6 +125,15 @@ export default function ProfessionalFormPage({
 
   function removeSchedule(index: number) {
     setSchedules(schedules.filter((_, i) => i !== index))
+  }
+
+  function toggleDay(day: number) {
+    const hasSchedules = schedules.some((s) => s.day_of_week === day)
+    if (hasSchedules) {
+      setSchedules(schedules.filter((s) => s.day_of_week !== day))
+    } else {
+      addSchedule(day)
+    }
   }
 
   function updateSchedule(index: number, field: keyof Schedule, value: string | number) {
@@ -172,24 +183,32 @@ export default function ProfessionalFormPage({
 
     setLoading(true)
 
+    const trimmedReason = inactiveReason.trim()
+    const reasonToSave = isActive ? null : trimmedReason || null
+
     try {
       if (isEdit) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('professionals')
           .update({
             name,
             buffer_time_minutes: bufferTime,
             is_active: isActive,
+            inactive_reason: reasonToSave,
           })
           .eq('id', resolvedParams.id)
 
-        await supabase
+        if (updateError) throw updateError
+
+        const { error: deleteError } = await supabase
           .from('schedules')
           .delete()
           .eq('professional_id', resolvedParams.id)
 
+        if (deleteError) throw deleteError
+
         if (schedules.length > 0) {
-          await supabase.from('schedules').insert(
+          const { error: insertSchedError } = await supabase.from('schedules').insert(
             schedules.map((s) => ({
               professional_id: resolvedParams.id,
               day_of_week: s.day_of_week,
@@ -197,21 +216,26 @@ export default function ProfessionalFormPage({
               end_time: s.end_time,
             }))
           )
+
+          if (insertSchedError) throw insertSchedError
         }
       } else {
-        const { data: newProf } = await supabase
+        const { data: newProf, error: insertError } = await supabase
           .from('professionals')
           .insert({
             shop_id: shopId,
             name,
             buffer_time_minutes: bufferTime,
             is_active: isActive,
+            inactive_reason: reasonToSave,
           })
           .select()
           .single()
 
+        if (insertError) throw insertError
+
         if (newProf && schedules.length > 0) {
-          await supabase.from('schedules').insert(
+          const { error: insertSchedError } = await supabase.from('schedules').insert(
             schedules.map((s) => ({
               professional_id: newProf.id,
               day_of_week: s.day_of_week,
@@ -219,13 +243,18 @@ export default function ProfessionalFormPage({
               end_time: s.end_time,
             }))
           )
+
+          if (insertSchedError) throw insertSchedError
         }
       }
 
       router.push(`/dashboard/${resolvedParams.shop_slug}/profesionales`)
     } catch (error) {
       console.error('Error saving professional:', error)
-      alert('Error al guardar')
+      const message = error && typeof error === 'object' && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : 'Error al guardar'
+      alert(message)
     } finally {
       setLoading(false)
     }
@@ -287,9 +316,37 @@ export default function ProfessionalFormPage({
               Profesional Activo
             </label>
             <span className="text-xs text-zinc-500 ml-auto">
-              {isActive ? 'Visible para reservas' : 'Oculto en el widget'}
+              {isActive ? 'Visible para reservas' : 'No se puede reservar'}
             </span>
           </div>
+
+          <AnimatePresence>
+            {!isActive && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ type: 'tween', ease: 'easeOut', duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 pt-2">
+                  <label className="text-sm font-medium text-slate-300">
+                    Motivo de inactividad (opcional)
+                  </label>
+                  <textarea
+                    value={inactiveReason}
+                    onChange={(e) => setInactiveReason(e.target.value)}
+                    placeholder="Ej: De vacaciones hasta el 15/09. Si lo dejás vacío, el profesional simplemente no aparecerá en el widget."
+                    rows={2}
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-white placeholder:text-slate-600 focus:border-pastel-lavender/50 focus:bg-white/5 focus:outline-none focus:ring-1 focus:ring-pastel-lavender/50 transition-all duration-300 resize-none"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Si completás este texto, el profesional se muestra en el widget marcado como no disponible junto con este mensaje. Si lo dejás vacío, se oculta por completo.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="h-px bg-white/5 w-full" />
 
@@ -310,11 +367,7 @@ export default function ProfessionalFormPage({
                     type="button"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      if (!hasSchedules) {
-                        addSchedule(day.value)
-                      }
-                    }}
+                    onClick={() => toggleDay(day.value)}
                     className={cn(
                       "px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border",
                       hasSchedules

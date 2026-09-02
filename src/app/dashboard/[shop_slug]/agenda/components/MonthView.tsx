@@ -33,7 +33,7 @@ export function MonthView({ month, selectedDate, appointments, onSelectDay }: Pr
     <div className="glass-card-dark p-6">
       <div className="grid grid-cols-7 gap-2 mb-2">
         {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d, i) => (
-          <div key={i} className="text-center text-xs font-bold text-zinc-500 uppercase tracking-widest p-2">
+          <div key={i} className="text-center text-xs font-bold text-zinc-200 uppercase tracking-widest p-2">
             {d}
           </div>
         ))}
@@ -46,24 +46,29 @@ export function MonthView({ month, selectedDate, appointments, onSelectDay }: Pr
           const isSelected = isSameDay(day, selectedDate)
           const isCurrentMonth = isSameMonth(day, month)
           const count = countByDay.get(format(day, 'yyyy-MM-dd')) || 0
+          const hasAppointments = count > 0
 
           return (
             <button
               key={day.toISOString()}
               onClick={() => onSelectDay(day)}
-              className={`aspect-square rounded-xl p-2 flex flex-col items-center justify-center gap-1 transition-all ${
+              className={`relative aspect-square rounded-xl p-2 flex flex-col items-center justify-center gap-1 transition-all ${
                 isSelected
                   ? 'bg-white text-black font-bold shadow-lg shadow-white/10'
+                  : hasAppointments
+                  ? 'bg-pastel-lavender/15 border border-pastel-lavender/40 text-white hover:bg-pastel-lavender/25'
                   : isCurrentMonth
                   ? 'text-zinc-300 hover:bg-white/10 hover:text-white'
                   : 'text-zinc-700 opacity-30'
               }`}
             >
               <span className="text-sm">{format(day, 'd')}</span>
-              {count > 0 && (
+              {hasAppointments && (
                 <span
-                  className={`text-[10px] font-bold px-1.5 rounded-full ${
-                    isSelected ? 'bg-black/10 text-black' : 'bg-white/10 text-zinc-300'
+                  className={`text-[11px] font-bold min-w-[18px] px-1.5 py-px rounded-full ${
+                    isSelected
+                      ? 'bg-black/10 text-black'
+                      : 'bg-pastel-lavender text-black'
                   }`}
                 >
                   {count}

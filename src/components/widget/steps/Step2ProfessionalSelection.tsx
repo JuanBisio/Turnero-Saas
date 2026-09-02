@@ -18,6 +18,7 @@ type Professional = {
   name: string
   buffer_time_minutes: number
   is_active: boolean
+  inactive_reason: string | null
 }
 
 export function Step2ProfessionalSelection() {
@@ -36,8 +37,8 @@ export function Step2ProfessionalSelection() {
         .from('professionals')
         .select('*')
         .eq('shop_id', shopId)
-        .eq('is_active', true)
-      
+        .or('is_active.eq.true,inactive_reason.not.is.null')
+
       if (!error && data) {
         setProfessionals(data)
       }
@@ -72,48 +73,68 @@ export function Step2ProfessionalSelection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {professionals.map((prof) => (
-          <motion.div
-            key={prof.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={cn(
-              'flex items-center gap-5 p-5 rounded-2xl cursor-pointer transition-all duration-300 group',
-              state.selectedProfessional?.id === prof.id
-                ? 'bg-white border-white shadow-xl z-10'
-                : 'bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.05]'
-            )}
-            onClick={() => {
-              dispatch({ type: 'SELECT_PROFESSIONAL', professional: prof as any })
-              // Auto advance
-              setTimeout(() => dispatch({ type: 'NEXT_STEP' }), 300)
-            }}
-          >
-            <div className={cn(
-              "flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold transition-all",
-              state.selectedProfessional?.id === prof.id
-                ? "bg-black text-white shadow-lg"
-                : "bg-white/5 text-zinc-400 group-hover:text-white group-hover:bg-white/10"
-            )}>
-              {prof.name.charAt(0).toUpperCase()}
-            </div>
-            
-            <div>
-              <h4 className={cn(
-                "font-bold text-lg transition-colors",
-                state.selectedProfessional?.id === prof.id ? "text-black" : "text-zinc-200 group-hover:text-white"
+        {professionals.map((prof) => {
+          const isUnavailable = !prof.is_active
+
+          return (
+            <motion.div
+              key={prof.id}
+              whileHover={isUnavailable ? undefined : { scale: 1.02 }}
+              whileTap={isUnavailable ? undefined : { scale: 0.98 }}
+              className={cn(
+                'flex items-center gap-5 p-5 rounded-2xl transition-all duration-300 group',
+                isUnavailable
+                  ? 'bg-white/[0.02] border border-white/5 opacity-60 cursor-not-allowed'
+                  : cn(
+                      'cursor-pointer',
+                      state.selectedProfessional?.id === prof.id
+                        ? 'bg-white border-white shadow-xl z-10'
+                        : 'bg-white/[0.03] border border-white/5 hover:border-white/10 hover:bg-white/[0.05]'
+                    )
+              )}
+              onClick={() => {
+                if (isUnavailable) return
+                dispatch({ type: 'SELECT_PROFESSIONAL', professional: prof as any })
+                // Auto advance
+                setTimeout(() => dispatch({ type: 'NEXT_STEP' }), 300)
+              }}
+            >
+              <div className={cn(
+                "flex h-14 w-14 items-center justify-center rounded-full text-xl font-bold transition-all shrink-0",
+                isUnavailable
+                  ? "bg-white/5 text-zinc-500"
+                  : state.selectedProfessional?.id === prof.id
+                    ? "bg-black text-white shadow-lg"
+                    : "bg-white/5 text-zinc-400 group-hover:text-white group-hover:bg-white/10"
               )}>
-                {prof.name}
-              </h4>
-              <p className={cn(
-                "text-sm transition-colors",
-                state.selectedProfessional?.id === prof.id ? "text-zinc-600" : "text-zinc-500 group-hover:text-zinc-400"
-              )}>
-                Profesional
-              </p>
-            </div>
-          </motion.div>
-        ))}
+                {prof.name.charAt(0).toUpperCase()}
+              </div>
+
+              <div>
+                <h4 className={cn(
+                  "font-bold text-lg transition-colors",
+                  isUnavailable
+                    ? "text-zinc-400"
+                    : state.selectedProfessional?.id === prof.id ? "text-black" : "text-zinc-200 group-hover:text-white"
+                )}>
+                  {prof.name}
+                </h4>
+                {isUnavailable ? (
+                  <p className="text-sm text-amber-400/80">
+                    No disponible{prof.inactive_reason ? `: ${prof.inactive_reason}` : ''}
+                  </p>
+                ) : (
+                  <p className={cn(
+                    "text-sm transition-colors",
+                    state.selectedProfessional?.id === prof.id ? "text-zinc-600" : "text-zinc-500 group-hover:text-zinc-400"
+                  )}>
+                    Profesional
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )
+        })}
       </div>
     </div>
   )

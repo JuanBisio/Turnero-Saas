@@ -258,6 +258,7 @@ export function ClassicDayView({
                 <div className="space-y-4">
                   <AnimatePresence>
                     {dayExceptions.map((exc) => {
+                      const isFullDay = !exc.start_time && !exc.end_time
                       const startTime = exc.start_time
                         ? exc.start_time.length > 8
                           ? format(parseISO(exc.start_time), 'HH:mm')
@@ -285,7 +286,7 @@ export function ClassicDayView({
                             </div>
                             <div>
                               <p className="text-white font-semibold text-base flex items-center gap-2">
-                                Bloqueado {startTime} - {endTime}
+                                {isFullDay ? 'Día completo bloqueado' : `Bloqueado ${startTime} - ${endTime}`}
                               </p>
                               <p className="text-sm text-zinc-500 mt-0.5 font-medium">{exc.reason || 'Sin motivo'}</p>
                             </div>

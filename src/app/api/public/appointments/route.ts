@@ -74,6 +74,16 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error creating appointment:', error)
+
+      // Postgres exclusion_violation: the appointments_no_overlap constraint
+      // rejected this insert because another appointment took the slot first.
+      if (error.code === '23P01') {
+        return NextResponse.json(
+          { error: 'Este horario ya no está disponible. Por favor elegí otro.', code: 'SLOT_TAKEN' },
+          { status: 409 }
+        )
+      }
+
       return NextResponse.json(
         { error: 'Appointment creation failed. Check permissions.' },
         { status: 500 }

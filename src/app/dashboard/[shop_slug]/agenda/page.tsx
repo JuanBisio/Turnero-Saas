@@ -195,14 +195,14 @@ export default function AgendaPage() {
     }
   }
 
-  async function createBlock(data: { professionalId: string; startTime: string; endTime: string; reason: string }) {
+  async function createBlock(data: { professionalId: string; startTime: string; endTime: string; reason: string; fullDay: boolean }) {
     const dateStr = format(selectedDate, 'yyyy-MM-dd')
     const { error } = await supabase.from('exceptions').insert({
       professional_id: data.professionalId,
       specific_date: dateStr,
-      start_time: `${data.startTime}:00`,
-      end_time: `${data.endTime}:00`,
-      reason: data.reason || 'Bloqueo manual',
+      start_time: data.fullDay ? null : `${data.startTime}:00`,
+      end_time: data.fullDay ? null : `${data.endTime}:00`,
+      reason: data.reason || (data.fullDay ? 'Día bloqueado' : 'Bloqueo manual'),
       is_blocked: true,
     })
 

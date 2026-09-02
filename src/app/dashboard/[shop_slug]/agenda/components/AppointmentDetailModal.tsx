@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { getProfessionalColor } from '../lib/colors'
+import { getProfessionalColor } from '@/lib/professionalColors'
 import type { Appointment } from '../lib/types'
 
 type Props = {

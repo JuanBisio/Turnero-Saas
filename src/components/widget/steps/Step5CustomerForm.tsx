@@ -107,6 +107,14 @@ export function Step5CustomerForm() {
 
       if (!response.ok) {
         console.error('API error:', result)
+
+        if (response.status === 409 || result.code === 'SLOT_TAKEN') {
+          alert(result.error || 'Este horario ya no está disponible. Por favor elegí otro.')
+          // Send the user back to time selection — it refetches availability on mount
+          dispatch({ type: 'PREV_STEP' })
+          return
+        }
+
         alert(`Error: ${result.error || 'No se pudo crear la reserva'}`)
         return
       }
